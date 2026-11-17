@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: `dark:` utilities follow the .dark class on <html>
+   (set from a cookie), not the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ──────────────────────────────────────────────────────────────────────────
+   The Conqueror — design tokens
+   Calm, warm, "wertig". The map is the star; the UI recedes around it.
+   Retune the palette here; everything reads from these tokens.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-parchment: #f4f0e9; /* app background */
+  --color-surface: #fbf9f5; /* cards / panels */
+  --color-surface-2: #f0ebe2; /* subtle raised fills */
+  --color-ink: #2b2723; /* primary text */
+  --color-muted: #8c8378; /* secondary text */
+  --color-line: #e6dfd4; /* hairline borders */
+
+  --color-ocean: #eef4f5; /* map sea (gradient center) */
+  --color-ocean-deep: #dfe9eb; /* map sea (gradient edge) */
+  --color-country: #ddd5c9; /* unvisited country */
+  --color-country-edge: #c8bdac; /* country borders */
+
+  --color-accent: #2f6f6a; /* primary accent (teal) */
+  --color-accent-soft: #cfe2de; /* light teal wash */
+  --color-arc: #c2784f; /* flight arcs (terracotta) */
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xl: 1.1rem;
+}
+
+html {
+  color-scheme: light;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Dark mode — override the design tokens under .dark (set on <html>).
+   Everything reads from these CSS variables, so the whole UI + map re-themes.
+   ────────────────────────────────────────────────────────────────────────── */
+.dark {
+  --color-parchment: #1b1916; /* app background */
+  --color-surface: #252119; /* cards / panels */
+  --color-surface-2: #2f2a22; /* subtle raised fills */
+  --color-ink: #ece5d8; /* primary text */
+  --color-muted: #9d9384; /* secondary text */
+  --color-line: #3a342b; /* hairline borders */
+
+  --color-ocean: #16242a; /* map sea (gradient center) */
+  --color-ocean-deep: #0f181c; /* map sea (gradient edge) */
+  --color-country: #38332a; /* unvisited country */
+  --color-country-edge: #4a4337; /* country borders */
+
+  --color-accent: #4a9d95; /* primary accent (teal) */
+  --color-accent-soft: #234b46; /* deep teal wash */
+  --color-arc: #d2885a; /* flight arcs (terracotta) */
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prevent iOS Safari from zooming when focusing a small input/select */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Consistent custom dropdown arrow on every native <select> */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%238c8378' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 12px 12px;
+  padding-right: 2rem;
+}
+select::-ms-expand {
+  display: none;
+}
+
+/* Hide scrollbar (used for the horizontally-scrollable mobile nav) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Shimmer sweep for skeleton placeholders */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* The map should feel like a quiet object, not a clickable web element */
+.map-svg {
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}

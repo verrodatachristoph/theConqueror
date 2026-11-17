@@ -1,0 +1,217 @@
+// Hand-maintained to match supabase/migrations/. Keep in sync when the schema changes.
+// (Supabase CLI `gen types` needs Docker, which isn't available here.)
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type TravelMode = "car" | "plane" | "train";
+export type PersonCode = "C" | "M" | "P" | "N";
+
+export interface Database {
+  public: {
+    Tables: {
+      trips: {
+        Row: {
+          id: string;
+          place: string | null;
+          country: string | null;
+          country_iso3: string | null;
+          lat: number | null;
+          lon: number | null;
+          category: string | null;
+          travel_mode: TravelMode | null;
+          departure_iata: string | null;
+          departure_lat: number | null;
+          departure_lon: number | null;
+          arrival_iata: string | null;
+          arrival_lat: number | null;
+          arrival_lon: number | null;
+          flight_stops: { iata: string; lat: number; lon: number }[];
+          start_date: string | null;
+          end_date: string | null;
+          days: number | null;
+          travelers: string[];
+          other_travelers: string | null;
+          comment: string | null;
+          cover_photo_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          place?: string | null;
+          country?: string | null;
+          country_iso3?: string | null;
+          lat?: number | null;
+          lon?: number | null;
+          category?: string | null;
+          travel_mode?: TravelMode | null;
+          departure_iata?: string | null;
+          departure_lat?: number | null;
+          departure_lon?: number | null;
+          arrival_iata?: string | null;
+          arrival_lat?: number | null;
+          arrival_lon?: number | null;
+          flight_stops?: { iata: string; lat: number; lon: number }[];
+          start_date?: string | null;
+          end_date?: string | null;
+          days?: number | null;
+          travelers?: string[];
+          other_travelers?: string | null;
+          comment?: string | null;
+          cover_photo_url?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["trips"]["Insert"]>;
+        Relationships: [];
+      };
+      persons: {
+        Row: { code: string; name: string; color: string };
+        Insert: { code: string; name: string; color: string };
+        Update: Partial<{ code: string; name: string; color: string }>;
+        Relationships: [];
+      };
+      airports: {
+        Row: { iata: string; name: string; city: string | null; lat: number; lon: number };
+        Insert: { iata: string; name: string; city?: string | null; lat: number; lon: number };
+        Update: Partial<{ iata: string; name: string; city: string | null; lat: number; lon: number }>;
+        Relationships: [];
+      };
+      trip_photos: {
+        Row: {
+          id: string;
+          trip_id: string;
+          url: string;
+          caption: string | null;
+          sort: number;
+        };
+        Insert: {
+          id?: string;
+          trip_id: string;
+          url: string;
+          caption?: string | null;
+          sort?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["trip_photos"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "trip_photos_trip_id_fkey";
+            columns: ["trip_id"];
+            referencedRelation: "trips";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      allowed_emails: {
+        Row: { email: string };
+        Insert: { email: string };
+        Update: Partial<{ email: string }>;
+        Relationships: [];
+      };
+      geocode_cache: {
+        Row: { query: string; lat: number; lon: number; source: string; created_at: string };
+        Insert: { query: string; lat: number; lon: number; source: string; created_at?: string };
+        Update: Partial<{ query: string; lat: number; lon: number; source: string; created_at: string }>;
+        Relationships: [];
+      };
+      wishlist: {
+        Row: { iso3: string; country: string; created_at: string };
+        Insert: { iso3: string; country: string; created_at?: string };
+        Update: Partial<{ iso3: string; country: string; created_at: string }>;
+        Relationships: [];
+      };
+      achievements: {
+        Row: {
+          id: string;
+          icon: string;
+          title: string;
+          description: string;
+          metric: string;
+          target: number;
+          sort: number;
+          enabled: boolean;
+        };
+        Insert: {
+          id: string;
+          icon: string;
+          title: string;
+          description: string;
+          metric: string;
+          target: number;
+          sort?: number;
+          enabled?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["achievements"]["Insert"]>;
+        Relationships: [];
+      };
+      app_settings: {
+        Row: {
+          id: number;
+          home_lat: number | null;
+          home_lon: number | null;
+          home_label: string;
+          default_airport: string | null;
+          password_hash: string | null;
+          share_token: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          home_lat?: number | null;
+          home_lon?: number | null;
+          home_label?: string;
+          default_airport?: string | null;
+          password_hash?: string | null;
+          share_token?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["app_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      travel_plans: {
+        Row: {
+          slug: string;
+          title: string;
+          html: string;
+          bytes: number;
+          password_hash: string | null;
+          published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          title?: string;
+          html?: string;
+          bytes?: number;
+          password_hash?: string | null;
+          published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["travel_plans"]["Insert"]>;
+        Relationships: [];
+      };
+    };
+    Views: Record<never, never>;
+    Functions: {
+      is_allowed: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+    };
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
+  };
+}
+
+// Convenience row aliases
+export type Trip = Database["public"]["Tables"]["trips"]["Row"];
+export type TripInsert = Database["public"]["Tables"]["trips"]["Insert"];
+export type Person = Database["public"]["Tables"]["persons"]["Row"];
+export type Airport = Database["public"]["Tables"]["airports"]["Row"];
+export type TripPhoto = Database["public"]["Tables"]["trip_photos"]["Row"];

@@ -1,0 +1,426 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Person, TravelMode } from "@/types/database.types";
+import type { TripWithMedia } from "@/lib/data";
+import type { SignedPhoto } from "@/lib/data";
+import { toIso3, germanCountryNames } from "@/lib/iso";
+import { personColor, computeDays, TRAVEL_MODES } from "@/lib/trips";
+import { motion } from "framer-motion";
+import { compressImage } from "@/lib/image";
+import AirportInput from "@/components/AirportInput";
+import { useToast } from "@/components/toast";
+import { useT } from "@/components/i18n/LanguageProvider";
+import {
+  saveTrip,
+  uploadPhotos,
+  fetchTripPhotos,
+  deleteTrip,
+  deletePhoto,
+  setCoverPhoto,
+} from "@/app/actions";
+
+const CATEGORY_OPTIONS = ["Hotel", "Ferienwohnung", "Ferienhaus", "Resort", "Campingplatz", "Familienhotel"];
+const COUNTRY_NAMES = germanCountryNames();
+
+export default function TripForm({
+  trip,
+  persons,
+  defaultAirport,
+  onClose,
+}: {
+  trip: TripWithMedia | null;
+  persons: Person[];
+  defaultAirport?: string | null;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const t = useT();
+  const isEdit = !!trip;
+
+  const [place, setPlace] = useState(trip?.place ?? "");
+  const [country, setCountry] = useState(trip?.country ?? "");
+  const [category, setCategory] = useState(trip?.category ?? "");
+  const [travel_mode, setTravelMode] = useState<TravelMode | "">(trip?.travel_mode ?? "");
+  const [departure, setDeparture] = useState(trip?.departure_iata ?? defaultAirport ?? "");
+  const [arrival, setArrival] = useState(trip?.arrival_iata ?? "");
+  const [stops, setStops] = useState<string[]>(() => (trip?.flight_stops ?? []).map((s) => s.iata));
+  const [start, setStart] = useState(trip?.start_date ?? "");
+  const [end, setEnd] = useState(trip?.end_date ?? "");
+  const [who, setWho] = useState<Set<string>>(new Set(trip?.travelers ?? []));
+  const [otherTravelers, setOtherTravelers] = useState(trip?.other_travelers ?? "");
+  const [comment, setComment] = useState(trip?.comment ?? "");
+  const [files, setFiles] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<SignedPhoto[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (trip) fetchTripPhotos(trip.id).then(setPhotos).catch(() => {});
+  }, [trip]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const iso = toIso3(country);
+  const isFlight = travel_mode === "plane";
+  const days = computeDays(start, end);
+
+  const toggleWho = (code: string) =>
+    setWho((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+
+  async function handleSave() {
+    setError(null);
+    if (!place.trim()) return setError(t("form.placeMissing"));
+    if (!country.trim()) return setError(t("form.countryMissing"));
+    if (isFlight && !departure.trim()) return setError(t("form.departureRequired"));
+    setSaving(true);
+    try {
+      const { id } = await saveTrip({
+        id: trip?.id,
+        place: place.trim(),
+        country: country.trim(),
+        category: category.trim() || null,
+        travel_mode: travel_mode || null,
+        departure_iata: isFlight ? departure.trim() : null,
+        arrival_iata: isFlight ? arrival.trim() : null,
+        stops: isFlight ? stops.map((s) => s.trim()).filter(Boolean) : [],
+        start_date: start || null,
+        end_date: end || null,
+        travelers: [...who],
+        other_travelers: otherTravelers.trim() || null,
+        comment: comment.trim() || null,
+      });
+      if (files.length) {
+        const fd = new FormData();
+        for (const f of files) fd.append("files", await compressImage(f));
+        await uploadPhotos(id, fd);
+      }
+      router.refresh();
+      toast(isEdit ? t("form.saved") : t("form.stayCreated"));
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("form.saveFailed"));
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!trip) return;
+    if (!confirm(t("form.confirmDelete", { name: trip.place ?? "" }))) return;
+    setSaving(true);
+    try {
+      await deleteTrip(trip.id);
+      router.refresh();
+      toast(t("form.deleted"));
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("form.deleteFailed"));
+      setSaving(false);
+    }
+  }
+
+  async function removePhoto(p: SignedPhoto) {
+    await deletePhoto(p.id, p.path);
+    setPhotos((ps) => ps.filter((x) => x.id !== p.id));
+    router.refresh();
+  }
+  async function makeCover(p: SignedPhoto) {
+    if (!trip) return;
+    await setCoverPhoto(trip.id, p.path);
+    router.refresh();
+  }
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface p-5 shadow-2xl sm:rounded-3xl sm:p-6"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{isEdit ? t("form.editStay") : t("form.newStay")}</h2>
+          <button onClick={onClose} className="text-muted hover:text-ink" aria-label={t("common.close")}>
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("form.place")} required>
+              <input className={inputCls} value={place} onChange={(e) => setPlace(e.target.value)} />
+            </Field>
+            <Field label={t("form.country")} required hint={country ? (iso ?? t("form.noIso")) : undefined}>
+              <input
+                className={inputCls}
+                list="country-list"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+              />
+              <datalist id="country-list">
+                {COUNTRY_NAMES.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("form.category")}>
+              <input className={inputCls} list="category-list" value={category} onChange={(e) => setCategory(e.target.value)} />
+              <datalist id="category-list">
+                {CATEGORY_OPTIONS.map((a) => (
+                  <option key={a} value={a} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label={t("form.travelMode")}>
+              <select
+                className={inputCls}
+                value={travel_mode}
+                onChange={(e) => setTravelMode(e.target.value as TravelMode | "")}
+              >
+                <option value="">{t("common.none")}</option>
+                {TRAVEL_MODES.map((a) => (
+                  <option key={a} value={a}>
+                    {t("travelMode." + a)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          {isFlight && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("form.departureAirport")} required hint={t("form.cityOrIata")}>
+                <AirportInput value={departure} onChange={setDeparture} placeholder={t("form.departurePlaceholder")} className={inputCls} />
+              </Field>
+              <Field label={t("form.arrivalAirport")} hint={t("form.optionalCityOrIata")}>
+                <AirportInput value={arrival} onChange={setArrival} placeholder={t("form.arrivalPlaceholder")} className={inputCls} />
+              </Field>
+            </div>
+          )}
+
+          {isFlight && (
+            <Field label={t("form.layovers")} hint={t("form.layoverHint")}>
+              <div className="space-y-2">
+                {stops.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-5 text-center text-xs text-muted">{i + 1}.</span>
+                    <div className="flex-1">
+                      <AirportInput
+                        value={s}
+                        onChange={(v) => setStops((prev) => prev.map((x, j) => (j === i ? v : x)))}
+                        placeholder={t("form.layoverPlaceholder")}
+                        className={`${inputCls} w-full`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStops((prev) => prev.filter((_, j) => j !== i))}
+                      className="px-2 text-muted hover:text-ink"
+                      title={t("form.remove")}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setStops((prev) => [...prev, ""])}
+                  className="rounded-lg border border-dashed border-line px-3 py-1.5 text-sm text-muted hover:text-ink"
+                >
+                  {t("form.addStop")}
+                </button>
+              </div>
+            </Field>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("form.start")}>
+              <input type="date" className={inputCls} value={start} onChange={(e) => setStart(e.target.value)} />
+            </Field>
+            <Field label={t("form.end")} hint={days ? `${days} ${t("common.days")}` : undefined}>
+              <input type="date" className={inputCls} value={end} onChange={(e) => setEnd(e.target.value)} />
+            </Field>
+          </div>
+
+          <Field label={t("form.whoOfUs")}>
+            <div className="flex flex-wrap gap-2">
+              {persons.map((p) => {
+                const on = who.has(p.code);
+                return (
+                  <button
+                    key={p.code}
+                    type="button"
+                    onClick={() => toggleWho(p.code)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all ${
+                      on ? "border-transparent text-surface" : "border-line text-muted"
+                    }`}
+                    style={on ? { backgroundColor: personColor(persons, p.code) } : undefined}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: on ? "var(--color-surface)" : personColor(persons, p.code) }}
+                    />
+                    {p.name}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <Field label={t("form.whoElse")}>
+            <input
+              className={inputCls}
+              value={otherTravelers}
+              onChange={(e) => setOtherTravelers(e.target.value)}
+              placeholder={t("form.commaSeparated")}
+            />
+          </Field>
+
+          <Field label={t("form.comment")}>
+            <textarea
+              className={`${inputCls} min-h-[64px] resize-y`}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </Field>
+
+          {/* Photos */}
+          <Field label={t("form.photos")}>
+            {photos.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {photos.map((p) => (
+                  <div key={p.id} className="group relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.url}
+                      alt=""
+                      className={`h-16 w-16 rounded-lg object-cover ring-2 ${
+                        trip?.cover_photo_url === p.path ? "ring-accent" : "ring-transparent"
+                      }`}
+                    />
+                    <div className="absolute inset-0 hidden items-center justify-center gap-1 rounded-lg bg-ink/50 group-hover:flex">
+                      <button
+                        type="button"
+                        onClick={() => makeCover(p)}
+                        title={t("form.asCover")}
+                        className="rounded bg-surface/90 px-1.5 text-xs"
+                      >
+                        ★
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(p)}
+                        title={t("common.delete")}
+                        className="rounded bg-surface/90 px-1.5 text-xs"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              className="block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:text-ink"
+            />
+            <p className="mt-1 text-xs text-muted">
+              {files.length > 0 ? `${files.length} ${t("form.filesSelected")} · ` : ""}
+              {t("form.photoCompressHint")}
+            </p>
+          </Field>
+
+          {error && <p className="text-sm text-[var(--color-arc)]">{error}</p>}
+
+          <div className="flex items-center justify-between pt-1">
+            {isEdit ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={saving}
+                className="text-sm text-[var(--color-arc)] hover:underline disabled:opacity-50"
+              >
+                {t("common.delete")}
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-line px-4 py-2 text-sm text-muted hover:text-ink"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-ink px-5 py-2 text-sm font-medium text-surface transition-transform active:scale-95 disabled:opacity-50"
+              >
+                {saving ? t("common.saving") : t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+const inputCls =
+  "w-full rounded-lg border border-line bg-parchment/40 px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent";
+
+function Field({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-xs font-medium text-muted">
+          {label}
+          {required && <span className="text-[var(--color-arc)]"> *</span>}
+        </span>
+        {hint && <span className="text-xs text-muted">{hint}</span>}
+      </div>
+      {children}
+    </label>
+  );
+}

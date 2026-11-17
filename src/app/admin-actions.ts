@@ -1,0 +1,278 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { hashPassword } from "@/lib/auth";
+import { geocode } from "@/lib/geocode";
+import { normalizeSlug, RESERVED_SLUGS, SLUG_RE } from "@/lib/plan-slug";
+
+type Result = { ok: boolean; error?: string };
+
+function revalidateAll() {
+  revalidatePath("/", "layout");
+}
+
+// ── Persons ────────────────────────────────────────────────────────────────
+export async function createPerson(code: string, name: string, color: string): Promise<Result> {
+  const c = code.trim().toUpperCase();
+  if (!c) return { ok: false, error: "Kürzel fehlt." };
+  if (!name.trim()) return { ok: false, error: "Name fehlt." };
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("persons").select("code").eq("code", c).maybeSingle();
+  if (existing) return { ok: false, error: `Kürzel „${c}" existiert bereits.` };
+  const { error } = await supabase.from("persons").insert({ code: c, name: name.trim(), color });
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function updatePerson(code: string, name: string, color: string): Promise<Result> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("persons")
+    .update({ name: name.trim(), color })
+    .eq("code", code);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function deletePerson(code: string): Promise<Result> {
+  const supabase = createAdminClient();
+  // strip the code from any trips that reference it
+  const { data: affected } = await supabase
+    .from("trips")
+    .select("id, travelers")
+    .contains("travelers", [code]);
+  for (const t of affected ?? []) {
+    await supabase
+      .from("trips")
+      .update({ travelers: (t.travelers ?? []).filter((c) => c !== code) })
+      .eq("id", t.id);
+  }
+  const { error } = await supabase.from("persons").delete().eq("code", code);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────
+export async function saveSettings(input: {
+  home_label: string;
+  home_lat: number | null;
+  home_lon: number | null;
+  default_airport: string | null;
+}): Promise<Result> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({
+      home_label: input.home_label.trim() || "Zuhause",
+      home_lat: input.home_lat,
+      home_lon: input.home_lon,
+      default_airport: input.default_airport?.trim().toUpperCase() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+/** Geocode a place name to coordinates (for the home location picker). */
+export async function geocodeHome(query: string): Promise<{ lat: number; lon: number } | null> {
+  if (!query.trim()) return null;
+  const geo = await geocode(query.trim(), "");
+  return geo ? { lat: geo.lat, lon: geo.lon } : null;
+}
+
+export async function changePassword(newPassword: string): Promise<Result> {
+  if (newPassword.length < 4) return { ok: false, error: "Passwort zu kurz (min. 4 Zeichen)." };
+  const hash = await hashPassword(process.env.AUTH_SECRET!, newPassword);
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ password_hash: hash, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+// ── Achievements ─────────────────────────────────────────────────────────────
+export async function saveAchievement(def: {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  metric: string;
+  target: number;
+  sort: number;
+  enabled: boolean;
+}): Promise<Result> {
+  if (!def.id.trim()) return { ok: false, error: "ID fehlt." };
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("achievements")
+    .upsert({ ...def, id: def.id.trim() }, { onConflict: "id" });
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function deleteAchievement(id: string): Promise<Result> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("achievements").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+// ── Public sharing ───────────────────────────────────────────────────────────
+export async function setShareToken(token: string | null): Promise<{ token: string | null }> {
+  const supabase = createAdminClient();
+  await supabase
+    .from("app_settings")
+    .update({ share_token: token, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  revalidateAll();
+  return { token };
+}
+
+/** Enable sharing (new random token), regenerate, or disable (null). */
+export async function updateSharing(action: "enable" | "regenerate" | "disable") {
+  if (action === "disable") return setShareToken(null);
+  return setShareToken(crypto.randomUUID());
+}
+
+// ── Travel plans ─────────────────────────────────────────────────────────────
+/** Roughly the server-action body limit set in next.config.ts, minus overhead. */
+const MAX_PLAN_BYTES = 10 * 1024 * 1024;
+
+function checkSlug(raw: string): { slug: string } | { error: string } {
+  const slug = normalizeSlug(raw);
+  if (!SLUG_RE.test(slug))
+    return { error: "Kürzel: nur Kleinbuchstaben, Ziffern und Bindestriche (min. 2 Zeichen)." };
+  if (RESERVED_SLUGS.has(slug)) return { error: `Kürzel „${slug}" ist reserviert.` };
+  return { slug };
+}
+
+function checkHtml(html: string): string | null {
+  if (!html.trim()) return "Die Datei ist leer.";
+  if (Buffer.byteLength(html, "utf8") > MAX_PLAN_BYTES) return "Datei zu groß (max. 10 MB).";
+  return null;
+}
+
+function revalidatePlan(slug: string) {
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/content`);
+  revalidateAll();
+}
+
+export async function createPlan(input: {
+  slug: string;
+  title: string;
+  html: string;
+  password: string;
+}): Promise<Result> {
+  const checked = checkSlug(input.slug);
+  if ("error" in checked) return { ok: false, error: checked.error };
+  const htmlError = checkHtml(input.html);
+  if (htmlError) return { ok: false, error: htmlError };
+
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase
+    .from("travel_plans")
+    .select("slug")
+    .eq("slug", checked.slug)
+    .maybeSingle();
+  if (existing) return { ok: false, error: `Kürzel „${checked.slug}" existiert bereits.` };
+
+  const password = input.password.trim();
+  if (password && password.length < 4) return { ok: false, error: "Passwort zu kurz (min. 4 Zeichen)." };
+
+  const { error } = await supabase.from("travel_plans").insert({
+    slug: checked.slug,
+    title: input.title.trim(),
+    html: input.html,
+    bytes: Buffer.byteLength(input.html, "utf8"),
+    password_hash: password ? await hashPassword(process.env.AUTH_SECRET!, password) : null,
+    published: true,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(checked.slug);
+  return { ok: true };
+}
+
+/** Replace the uploaded HTML of an existing plan; slug and password stay. */
+export async function replacePlanHtml(slug: string, html: string): Promise<Result> {
+  const htmlError = checkHtml(html);
+  if (htmlError) return { ok: false, error: htmlError };
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("travel_plans")
+    .update({ html, bytes: Buffer.byteLength(html, "utf8"), updated_at: new Date().toISOString() })
+    .eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(slug);
+  return { ok: true };
+}
+
+/** Rename the slug, retitle, or (de)activate a plan. Renaming breaks old links. */
+export async function updatePlan(
+  currentSlug: string,
+  input: { slug: string; title: string; published: boolean },
+): Promise<Result> {
+  const checked = checkSlug(input.slug);
+  if ("error" in checked) return { ok: false, error: checked.error };
+
+  const supabase = createAdminClient();
+  if (checked.slug !== currentSlug) {
+    const { data: clash } = await supabase
+      .from("travel_plans")
+      .select("slug")
+      .eq("slug", checked.slug)
+      .maybeSingle();
+    if (clash) return { ok: false, error: `Kürzel „${checked.slug}" existiert bereits.` };
+  }
+
+  const { error } = await supabase
+    .from("travel_plans")
+    .update({
+      slug: checked.slug,
+      title: input.title.trim(),
+      published: input.published,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("slug", currentSlug);
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(currentSlug);
+  revalidatePlan(checked.slug);
+  return { ok: true };
+}
+
+/** Set a new plan password, or pass null to drop it (slug-only access). */
+export async function setPlanPassword(slug: string, password: string | null): Promise<Result> {
+  if (password !== null && password.trim().length < 4)
+    return { ok: false, error: "Passwort zu kurz (min. 4 Zeichen)." };
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("travel_plans")
+    .update({
+      // A new hash invalidates every unlock cookie that was handed out.
+      password_hash: password === null ? null : await hashPassword(process.env.AUTH_SECRET!, password.trim()),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(slug);
+  return { ok: true };
+}
+
+export async function deletePlan(slug: string): Promise<Result> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("travel_plans").delete().eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(slug);
+  return { ok: true };
+}
