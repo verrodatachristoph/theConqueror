@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Person } from "@/types/database.types";
 import type { TripWithMedia } from "@/lib/data";
 import { personColor, yearOf, isUpcoming, TRAVEL_MODE_ICON } from "@/lib/trips";
@@ -25,10 +25,13 @@ export default function TripList({
   const [page, setPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
 
-  // Reset to the first page whenever the (filtered/sorted) list changes.
-  useEffect(() => {
+  // Reset to the first page whenever the (filtered/sorted) list changes. Adjusting
+  // state during render avoids an extra effect pass.
+  const [prevTrips, setPrevTrips] = useState(trips);
+  if (prevTrips !== trips) {
+    setPrevTrips(trips);
     setPage(1);
-  }, [trips]);
+  }
 
   if (!trips.length)
     return (
@@ -136,7 +139,7 @@ export default function TripList({
         )}
         <button
           onClick={() => setShowAll((s) => !s)}
-          className="rounded-full border border-line px-3 py-1.5 text-muted transition-colors hover:text-ink"
+          className="rounded-full border border-line px-3 min-h-[44px] py-1.5 text-muted transition-colors hover:text-ink"
         >
           {showAll ? tr("list.paginate") : tr("list.showAll", { n: trips.length })}
         </button>

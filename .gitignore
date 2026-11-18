@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local consolidated apply file (generated)
 /supabase/_apply_all.sql
+
+# Local demo dataset (real family data, never commit)
+.demo-data/

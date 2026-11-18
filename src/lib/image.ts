@@ -13,7 +13,11 @@ export async function compressImage(
   maxBytes = 1_000_000,
   maxDim = 2200,
 ): Promise<File> {
-  if (!file.type.startsWith("image/") || file.size <= maxBytes) return file;
+  const isHeic = /image\/hei[cf]/.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  if (!file.type.startsWith("image/") && !isHeic) return file;
+  // HEIC is re-encoded even when small: only Safari can display it. Where the browser
+  // can decode it (Safari/iOS), the canvas turns it into a JPEG on the way.
+  if (file.size <= maxBytes && !isHeic) return file;
 
   let bitmap: ImageBitmap;
   try {

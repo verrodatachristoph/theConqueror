@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Person } from "@/types/database.types";
 import type { AchievementDef } from "@/lib/data";
@@ -270,15 +270,15 @@ function SettingsSection({ settings, onChange }: { settings: PublicSettings; onC
   );
 }
 
+const noSubscribe = () => () => {};
+
 function SharingSection({ token, onChange }: { token: string | null; onChange: () => void }) {
   const t = useT();
-  const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setLink(token ? `${window.location.origin}/s/${token}` : "");
-  }, [token]);
+  // window.location is only known in the browser; the server renders an empty link.
+  const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
+  const link = token && origin ? `${origin}/s/${token}` : "";
 
   const act = async (a: "enable" | "regenerate" | "disable") => {
     setBusy(true);

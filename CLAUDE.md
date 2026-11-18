@@ -70,3 +70,16 @@ editable in **/admin**. The committed seeds are generic placeholders.
   `plans.ts` + `plan-slug.ts`.
 - Env: see `.env.example`. `scripts/db.mjs` applies SQL; `scripts/seed-airports.mjs`
   loads the worldwide airport list.
+
+## Local dev without Supabase
+`DEV_NO_AUTH=1` (no password gate) and `DEV_DEMO=1` (in-memory client
+`src/lib/supabase/demo.ts`) in `.env.local`; both are honoured only under
+`next dev`. Data lives in `.demo-data/` (gitignored — may hold real data, never
+commit it); a fresh clone is seeded from the fictional `demo/sample-db.json`.
+`scripts/demo-import.mjs` builds `.demo-data/` from a Supabase backup.
+
+## Checks
+`npm run lint`, `npm run typecheck`, `npm test` (node:test over `test/*.test.ts`,
+resolver in `test/resolve.mjs`), `npm run build`. Server Actions must call
+`requireSession()` from `src/lib/session.ts`.
+

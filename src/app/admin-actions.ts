@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashPassword } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 import { geocode } from "@/lib/geocode";
 import { normalizeSlug, RESERVED_SLUGS, SLUG_RE } from "@/lib/plan-slug";
 
@@ -14,6 +15,7 @@ function revalidateAll() {
 
 // ── Persons ────────────────────────────────────────────────────────────────
 export async function createPerson(code: string, name: string, color: string): Promise<Result> {
+  await requireSession();
   const c = code.trim().toUpperCase();
   if (!c) return { ok: false, error: "Kürzel fehlt." };
   if (!name.trim()) return { ok: false, error: "Name fehlt." };
@@ -27,6 +29,7 @@ export async function createPerson(code: string, name: string, color: string): P
 }
 
 export async function updatePerson(code: string, name: string, color: string): Promise<Result> {
+  await requireSession();
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("persons")
@@ -38,6 +41,7 @@ export async function updatePerson(code: string, name: string, color: string): P
 }
 
 export async function deletePerson(code: string): Promise<Result> {
+  await requireSession();
   const supabase = createAdminClient();
   // strip the code from any trips that reference it
   const { data: affected } = await supabase
@@ -63,6 +67,7 @@ export async function saveSettings(input: {
   home_lon: number | null;
   default_airport: string | null;
 }): Promise<Result> {
+  await requireSession();
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("app_settings")
@@ -81,12 +86,14 @@ export async function saveSettings(input: {
 
 /** Geocode a place name to coordinates (for the home location picker). */
 export async function geocodeHome(query: string): Promise<{ lat: number; lon: number } | null> {
+  await requireSession();
   if (!query.trim()) return null;
   const geo = await geocode(query.trim(), "");
   return geo ? { lat: geo.lat, lon: geo.lon } : null;
 }
 
 export async function changePassword(newPassword: string): Promise<Result> {
+  await requireSession();
   if (newPassword.length < 4) return { ok: false, error: "Passwort zu kurz (min. 4 Zeichen)." };
   const hash = await hashPassword(process.env.AUTH_SECRET!, newPassword);
   const supabase = createAdminClient();
@@ -110,6 +117,7 @@ export async function saveAchievement(def: {
   sort: number;
   enabled: boolean;
 }): Promise<Result> {
+  await requireSession();
   if (!def.id.trim()) return { ok: false, error: "ID fehlt." };
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -121,6 +129,7 @@ export async function saveAchievement(def: {
 }
 
 export async function deleteAchievement(id: string): Promise<Result> {
+  await requireSession();
   const supabase = createAdminClient();
   const { error } = await supabase.from("achievements").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -130,6 +139,7 @@ export async function deleteAchievement(id: string): Promise<Result> {
 
 // ── Public sharing ───────────────────────────────────────────────────────────
 export async function setShareToken(token: string | null): Promise<{ token: string | null }> {
+  await requireSession();
   const supabase = createAdminClient();
   await supabase
     .from("app_settings")
@@ -141,6 +151,7 @@ export async function setShareToken(token: string | null): Promise<{ token: stri
 
 /** Enable sharing (new random token), regenerate, or disable (null). */
 export async function updateSharing(action: "enable" | "regenerate" | "disable") {
+  await requireSession();
   if (action === "disable") return setShareToken(null);
   return setShareToken(crypto.randomUUID());
 }
@@ -175,6 +186,7 @@ export async function createPlan(input: {
   html: string;
   password: string;
 }): Promise<Result> {
+  await requireSession();
   const checked = checkSlug(input.slug);
   if ("error" in checked) return { ok: false, error: checked.error };
   const htmlError = checkHtml(input.html);
@@ -206,6 +218,7 @@ export async function createPlan(input: {
 
 /** Replace the uploaded HTML of an existing plan; slug and password stay. */
 export async function replacePlanHtml(slug: string, html: string): Promise<Result> {
+  await requireSession();
   const htmlError = checkHtml(html);
   if (htmlError) return { ok: false, error: htmlError };
   const supabase = createAdminClient();
@@ -223,6 +236,7 @@ export async function updatePlan(
   currentSlug: string,
   input: { slug: string; title: string; published: boolean },
 ): Promise<Result> {
+  await requireSession();
   const checked = checkSlug(input.slug);
   if ("error" in checked) return { ok: false, error: checked.error };
 
@@ -253,6 +267,7 @@ export async function updatePlan(
 
 /** Set a new plan password, or pass null to drop it (slug-only access). */
 export async function setPlanPassword(slug: string, password: string | null): Promise<Result> {
+  await requireSession();
   if (password !== null && password.trim().length < 4)
     return { ok: false, error: "Passwort zu kurz (min. 4 Zeichen)." };
   const supabase = createAdminClient();
@@ -270,6 +285,7 @@ export async function setPlanPassword(slug: string, password: string | null): Pr
 }
 
 export async function deletePlan(slug: string): Promise<Result> {
+  await requireSession();
   const supabase = createAdminClient();
   const { error } = await supabase.from("travel_plans").delete().eq("slug", slug);
   if (error) return { ok: false, error: error.message };

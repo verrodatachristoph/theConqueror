@@ -129,9 +129,15 @@
     "trip": "Reise"
   },
   "filter": {
+    "addToFilter": "{name} hinzufügen",
+    "everyone": "Alle",
     "onlyWith": "Nur Reisen, bei denen {name} dabei war",
     "removeFromFilter": "{name} aus dem Filter nehmen",
     "reset": "Zurücksetzen",
+    "together": "Nur gemeinsam",
+    "togetherOff": "Reisen, auf denen jemand der Gewählten dabei war",
+    "togetherOn": "Nur Reisen, auf denen alle Gewählten zusammen waren",
+    "togetherOnEveryone": "Nur Reisen, auf denen die ganze Familie dabei war",
     "whoWasThere": "Wer war dabei"
   },
   "footer": {
@@ -166,6 +172,12 @@
     "noIso": "kein ISO-Code",
     "optionalCityOrIata": "optional, Stadt oder IATA",
     "photoCompressHint": "Große Fotos (>1 MB) werden automatisch verkleinert.",
+    "photoError": {
+      "count": "Zu viele Fotos auf einmal (höchstens 12).",
+      "size": "Ein Foto ist zu groß (höchstens 12 MB).",
+      "type": "Nur JPEG, PNG, WebP oder HEIC.",
+      "upload": "Fotos konnten nicht hochgeladen werden. Der Aufenthalt ist gespeichert."
+    },
     "photos": "Fotos",
     "place": "Ort",
     "placeMissing": "Ort fehlt.",
@@ -181,10 +193,12 @@
   "home": {
     "flightLines": "Fluglinien",
     "inDays": "in {n} Tagen",
+    "mapSummary": "{countries} Länder · {trips} Aufenthalte",
     "newStay": "+ Neuer Aufenthalt",
     "nextTrip": "Nächste Reise",
     "off": "aus",
     "on": "an",
+    "openMap": "Karte öffnen",
     "searchPlaceholder": "Suchen…",
     "sharedView": "geteilte Ansicht",
     "sortCountry": "Land A–Z",
@@ -250,6 +264,18 @@
     "profileOf": "Profil von",
     "travelDays": "Reisetage"
   },
+  "search": {
+    "category": "Unterkunft",
+    "clear": "Alles zurücksetzen",
+    "country": "Land",
+    "filter": "Filter",
+    "placeholder": "Ort, Land, Kommentar, Flughafen …",
+    "removeFilter": "{label} entfernen",
+    "reset": "Filter zurücksetzen",
+    "results": "{n} Treffer",
+    "show": "{n} anzeigen",
+    "year": "Jahr"
+  },
   "settings": {
     "appearance": "Darstellung",
     "language": "Sprache",
@@ -263,8 +289,11 @@
     "abroadShare": "Anteil Ausland",
     "allCompared": "Alle im Vergleich",
     "allYears": "Alle Jahre",
+    "average": "Ø {n}",
     "avgDuration": "Ø Reisedauer",
     "busiestYear": "Reisefreudigstes Jahr",
+    "byDays": "Tage",
+    "byVisits": "Besuche",
     "continents": "Kontinente",
     "countries": "Länder",
     "countriesOverTime": "Länder über die Zeit",
@@ -297,6 +326,13 @@
     "recordsHighlights": "Rekorde & Highlights",
     "sharedCountries": "Gemeinsame Länder",
     "sharedTrips": "Gemeinsame Reisen",
+    "stay": {
+      "fortnight": "Bis zwei Wochen",
+      "long": "Länger",
+      "week": "Bis eine Woche",
+      "weekend": "Kurztrip (bis 3 Tage)"
+    },
+    "stayLength": "Reisedauer",
     "topCountries": "Top Länder",
     "topCountry": "Meistbesuchtes Land",
     "topPlace": "Meistbesuchter Ort",
@@ -308,6 +344,7 @@
     "tripsCount": "{n} Reisen",
     "tripsPerPerson": "Reisen pro Person",
     "tripsPerYear": "Reisen pro Jahr",
+    "visits": "{n}× besucht",
     "vs": "vs",
     "worldCoverage": "Weltabdeckung",
     "worldCoverageCaption": "{pct} % aller Länder weltweit.",

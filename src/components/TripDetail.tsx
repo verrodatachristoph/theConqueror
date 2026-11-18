@@ -21,20 +21,23 @@ export default function TripDetail({
   onClose,
   onEdit,
   readOnly = false,
+  shareToken = null,
 }: {
   trip: TripWithMedia;
   persons: Person[];
   onClose: () => void;
   onEdit?: (t: TripWithMedia) => void;
   readOnly?: boolean;
+  /** Set on the public read-only view, so photos can load without a session. */
+  shareToken?: string | null;
 }) {
   const t = useT();
   const [photos, setPhotos] = useState<SignedPhoto[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchTripPhotos(trip.id).then(setPhotos).catch(() => {});
-  }, [trip.id]);
+    fetchTripPhotos(trip.id, shareToken).then(setPhotos).catch(() => {});
+  }, [trip.id, shareToken]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

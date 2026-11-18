@@ -356,3 +356,135 @@ export function headToHead(trips: Trip[], codeA: string, codeB: string): HeadToH
     sharedCountries,
   };
 }
+
+// ---------------------------------------------------------------- ranked lists
+
+/**
+ * One row of a ranking. It carries both numbers, because the same list is sorted
+ * once by visits and once by days, and the other number stays worth reading.
+ */
+export type Ranked = {
+  key: string;
+  label: string;
+  /** Small second line: for a place its country, for a country nothing. */
+  sub: string | null;
+  /** Visits: a trip counts once, however long it was. */
+  count: number;
+  /** Days: summed over every trip there. */
+  days: number;
+};
+
+export type RankBy = "count" | "days";
+
+function rank(entries: Iterable<Ranked>, by: RankBy, limit: number): Ranked[] {
+  const second: RankBy = by === "count" ? "days" : "count";
+  return [...entries]
+    .filter((e) => e[by] > 0)
+    .sort((a, b) => b[by] - a[by] || b[second] - a[second] || a.label.localeCompare(b.label, "de"))
+    .slice(0, limit);
+}
+
+/** The spelling of each country that was entered most often ("USA" vs "Vereinigte Staaten"). */
+function commonCountryNames(trips: Trip[]): Map<string, string> {
+  const spellings = new Map<string, Map<string, number>>();
+  for (const t of trips) {
+    if (!t.country_iso3 || !t.country) continue;
+    const m = spellings.get(t.country_iso3) ?? new Map<string, number>();
+    m.set(t.country, (m.get(t.country) ?? 0) + 1);
+    spellings.set(t.country_iso3, m);
+  }
+  const out = new Map<string, string>();
+  for (const [iso3, m] of spellings) {
+    out.set(iso3, [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"))[0][0]);
+  }
+  return out;
+}
+
+/** Countries keyed by ISO-3, so different spellings of one country are counted together. */
+export function rankedCountries(trips: Trip[], by: RankBy, limit = 10): Ranked[] {
+  const names = commonCountryNames(trips);
+  const map = new Map<string, Ranked>();
+  for (const t of trips) {
+    const key = t.country_iso3 ?? (t.country ? `name:${t.country}` : null);
+    if (!key) continue;
+    const e = map.get(key) ?? {
+      key,
+      label: (t.country_iso3 && names.get(t.country_iso3)) || t.country || key,
+      sub: null,
+      count: 0,
+      days: 0,
+    };
+    e.count += 1;
+    e.days += t.days ?? 0;
+    map.set(key, e);
+  }
+  return rank(map.values(), by, limit);
+}
+
+/**
+ * Places, merged case-insensitively (the first spelling wins). The second line
+ * names the country, in its most common spelling.
+ */
+export function rankedPlaces(trips: Trip[], by: RankBy, limit = 10): Ranked[] {
+  const names = commonCountryNames(trips);
+  const map = new Map<string, Ranked>();
+  for (const t of trips) {
+    const name = t.place?.trim();
+    if (!name) continue;
+    const key = name.toLocaleLowerCase("de");
+    const e = map.get(key) ?? {
+      key,
+      label: name,
+      sub: (t.country_iso3 && names.get(t.country_iso3)) || t.country,
+      count: 0,
+      days: 0,
+    };
+    e.count += 1;
+    e.days += t.days ?? 0;
+    map.set(key, e);
+  }
+  return rank(map.values(), by, limit);
+}
+
+// ---------------------------------------------------------------- distributions
+
+/** Trips per year, gap years included so a chart has no holes. */
+export function tripsPerYear(trips: Trip[]): { year: number; trips: number; days: number }[] {
+  const byYear = new Map<number, { trips: number; days: number }>();
+  for (const t of trips) {
+    const y = yearOf(t);
+    if (y == null) continue;
+    const e = byYear.get(y) ?? { trips: 0, days: 0 };
+    e.trips += 1;
+    e.days += t.days ?? 0;
+    byYear.set(y, e);
+  }
+  if (byYear.size === 0) return [];
+  const years = [...byYear.keys()];
+  const out: { year: number; trips: number; days: number }[] = [];
+  for (let y = Math.min(...years); y <= Math.max(...years); y++) {
+    out.push({ year: y, ...(byYear.get(y) ?? { trips: 0, days: 0 }) });
+  }
+  return out;
+}
+
+/** How long a trip lasts, in the four lengths a family actually plans. */
+export const STAY_BUCKETS = [
+  { key: "weekend", upTo: 3 },
+  { key: "week", upTo: 7 },
+  { key: "fortnight", upTo: 14 },
+  { key: "long", upTo: Number.POSITIVE_INFINITY },
+] as const;
+
+export type StayBucket = (typeof STAY_BUCKETS)[number]["key"];
+
+export function stayLengths(trips: Trip[]): { key: StayBucket; count: number }[] {
+  const counts = new Map<StayBucket, number>(STAY_BUCKETS.map((b) => [b.key, 0]));
+  for (const t of trips) {
+    const days = t.days ?? 0;
+    if (days <= 0) continue;
+    const bucket = STAY_BUCKETS.find((b) => days <= b.upTo) ?? STAY_BUCKETS[STAY_BUCKETS.length - 1];
+    counts.set(bucket.key, (counts.get(bucket.key) ?? 0) + 1);
+  }
+  return STAY_BUCKETS.map((b) => ({ key: b.key, count: counts.get(b.key) ?? 0 }));
+}

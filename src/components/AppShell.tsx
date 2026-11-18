@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Person } from "@/types/database.types";
 import type { TripWithMedia } from "@/lib/data";
-import { filterTrips, yearOf, isUpcoming, daysUntil } from "@/lib/trips";
+import { yearOf, isUpcoming, daysUntil } from "@/lib/trips";
+import { applyFilters } from "@/lib/search";
+import { usePersonFilter } from "@/lib/use-person-filter";
+import { useMediaQuery } from "@/lib/use-media";
 import { flagEmoji } from "@/lib/iso";
 import PersonFilter from "@/components/PersonFilter";
 import Stats from "@/components/Stats";
@@ -38,14 +41,15 @@ export default function AppShell({
   defaultAirport,
   wishlist,
   readOnly = false,
+  shareToken = null,
 }: {
   trips: TripWithMedia[];
   persons: Person[];
   defaultAirport: string | null;
   wishlist: string[];
   readOnly?: boolean;
+  shareToken?: string | null;
 }) {
-  const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [showArcs, setShowArcs] = useState(true);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"date" | "days" | "country">("date");
@@ -53,17 +57,15 @@ export default function AppShell({
   const [editing, setEditing] = useState<TripWithMedia | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [detail, setDetail] = useState<TripWithMedia | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  // A world map 360 px wide is decoration: no country is big enough to tap. On a
+  // phone the map therefore opens full screen, where pinch-zoom and pan work.
+  const wide = useMediaQuery("(min-width: 640px)", true);
   const tr = useT();
 
-  const toggle = (code: string) =>
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
-      return next;
-    });
-
-  const byPerson = useMemo(() => filterTrips(trips, enabled), [trips, enabled]);
+  const codes = useMemo(() => persons.map((p) => p.code), [persons]);
+  const people = usePersonFilter(trips, codes);
+  const byPerson = people.filtered;
   const listTrips = byPerson;
   const focusedTrips = useMemo(
     () => (focused ? byPerson.filter((t) => t.country_iso3 === focused) : []),
@@ -78,16 +80,13 @@ export default function AppShell({
   }, [byPerson]);
 
   const visibleList = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const arr = q
-      ? listTrips.filter((t) => `${t.place ?? ""} ${t.country ?? ""}`.toLowerCase().includes(q))
-      : listTrips;
+    const arr = applyFilters(listTrips, { search: query }, (m) => tr("travelMode." + m));
     const sorted = [...arr];
     if (sort === "date") sorted.sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? ""));
     else if (sort === "days") sorted.sort((a, b) => (b.days ?? 0) - (a.days ?? 0));
     else sorted.sort((a, b) => (a.country ?? "").localeCompare(b.country ?? "", "de"));
     return sorted;
-  }, [listTrips, query, sort]);
+  }, [listTrips, query, sort, tr]);
 
   const openNew = () => {
     setEditing(null);
@@ -114,12 +113,7 @@ export default function AppShell({
       )}
 
       <div className="mb-5">
-        <PersonFilter
-          persons={persons}
-          enabled={enabled}
-          onToggle={toggle}
-          onAll={() => setEnabled(new Set())}
-        />
+        <PersonFilter persons={persons} filter={people} />
       </div>
 
       {/* Countdown to the next planned trip */}
@@ -146,8 +140,80 @@ export default function AppShell({
         </div>
       )}
 
-      {/* Map hero — full-bleed on mobile, card on larger screens */}
-      <section className="relative mb-6 -mx-4 border-y border-line bg-surface shadow-sm sm:mx-0 sm:rounded-2xl sm:border sm:p-3">
+      {/* Map: a card on wider screens, a full-screen sheet on phones */}
+      {!wide && (
+        <button
+          type="button"
+          onClick={() => setMapOpen(true)}
+          className="relative mb-6 flex min-h-[88px] w-full items-center gap-4 overflow-hidden rounded-2xl border border-line bg-ocean p-4 text-left shadow-sm active:scale-[0.99]"
+        >
+          <span className="text-3xl" aria-hidden>🗺️</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-ink">{tr("home.openMap")}</span>
+            <span className="block text-sm text-muted">
+              {tr("home.mapSummary", {
+                countries: new Set(byPerson.map((t) => t.country_iso3).filter(Boolean)).size,
+                trips: byPerson.length,
+              })}
+            </span>
+          </span>
+          <span aria-hidden className="text-xl text-muted">›</span>
+        </button>
+      )}
+
+      {!wide && mapOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={tr("home.openMap")}
+          className="fixed inset-0 z-40 flex flex-col bg-ocean pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+        >
+          <div className="flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => setMapOpen(false)}
+              aria-label={tr("common.close")}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-lg text-ink hover:bg-surface-2"
+            >
+              ✕
+            </button>
+            <span className="mr-auto truncate font-semibold">{tr("home.openMap")}</span>
+            <button
+              type="button"
+              onClick={() => setShowArcs((v) => !v)}
+              aria-pressed={showArcs}
+              className={`min-h-[44px] rounded-xl border px-3 text-sm ${
+                showArcs
+                  ? "border-[var(--color-arc)] bg-[var(--color-arc)]/15 text-[var(--color-arc)]"
+                  : "border-line text-muted"
+              }`}
+            >
+              {tr("home.flightLines")} {showArcs ? tr("home.on") : tr("home.off")}
+            </button>
+          </div>
+          <div className="relative min-h-0 flex-1">
+            <WorldMap
+              fill
+              trips={byPerson}
+              showArcs={showArcs}
+              wishlist={wishlist}
+              focusIso={focused}
+              onSelectCountry={(iso) => {
+                // Show the country's trips under the preview, where there is room to read them.
+                setFocused(iso);
+                setMapOpen(false);
+              }}
+              onSelectTrip={(t) => {
+                const full = trips.find((x) => x.id === t.id);
+                if (full) openDetail(full);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {wide && (
+      <section className="relative mb-6 rounded-2xl border border-line bg-surface p-3 shadow-sm">
         <WorldMap
           trips={byPerson}
           showArcs={showArcs}
@@ -207,6 +273,7 @@ export default function AppShell({
           </div>
         )}
       </section>
+      )}
 
       {/* Country focus panel — mobile only (desktop uses the in-map overlay) */}
       {focused && (
@@ -218,7 +285,7 @@ export default function AppShell({
             </h2>
             <button
               onClick={() => setFocused(null)}
-              className="rounded-full border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-ink"
+              className="rounded-full border border-line px-3 min-h-[44px] py-1.5 text-sm text-muted transition-colors hover:text-ink"
             >
               {tr("common.close")} ✕
             </button>
@@ -243,7 +310,7 @@ export default function AppShell({
             {!readOnly && (
               <button
                 onClick={openNew}
-                className="shrink-0 rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-surface shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:order-last"
+                className="shrink-0 rounded-full bg-ink px-4 min-h-[44px] py-1.5 text-sm font-medium text-surface shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:order-last"
               >
                 {tr("home.newStay")}
               </button>
@@ -255,12 +322,12 @@ export default function AppShell({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr("home.searchPlaceholder")}
-              className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent sm:w-48 sm:flex-none"
+              className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3 min-h-[44px] py-1.5 text-sm outline-none focus:border-accent sm:w-48 sm:flex-none"
             />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as typeof sort)}
-              className="shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
+              className="shrink-0 rounded-full border border-line bg-surface px-3 min-h-[44px] py-1.5 text-sm outline-none focus:border-accent"
               title={tr("home.sortTitle")}
             >
               <option value="date">{tr("home.sortNewest")}</option>
@@ -279,6 +346,7 @@ export default function AppShell({
           onClose={() => setDetail(null)}
           onEdit={openEdit}
           readOnly={readOnly}
+          shareToken={shareToken}
         />
       )}
 

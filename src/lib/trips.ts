@@ -20,19 +20,37 @@ export function personColor(persons: { code: string; color: string }[], code: st
 }
 
 /**
- * AND semantics: a trip is shown only if EVERY enabled person was on it, so the
- * map/stats describe trips where exactly the selected people were together.
- * With all enabled (default) that means trips where the whole family was along;
- * with one enabled it's simply that person's trips. An empty selection = no
- * filter (show everything).
+ * Who was along, in two readings.
+ *
+ * Default ("was along", OR): a trip survives if ANY selected person was on it, so
+ * selecting everyone really means every trip. `together` (AND) narrows to trips on
+ * which ALL selected people travelled together. An empty selection filters nothing.
  */
-export function filterTrips<T extends Trip>(trips: T[], enabled: Set<string>): T[] {
-  if (enabled.size === 0) return trips;
+export function filterTrips<T extends Trip>(trips: T[], selected: Set<string>, together = false): T[] {
+  if (selected.size === 0) return trips;
+  const people = [...selected];
   return trips.filter((t) => {
     const who = t.travelers ?? [];
-    for (const c of enabled) if (!who.includes(c)) return false;
-    return true;
+    return together ? people.every((c) => who.includes(c)) : people.some((c) => who.includes(c));
   });
+}
+
+/**
+ * Resolve a filter selection against the known people. Nothing selected means
+ * everyone; with `together` on that asks for trips the whole family made together.
+ * With a single chosen person `together` has no meaning and is ignored.
+ */
+export function applySelection<T extends Trip>(
+  trips: T[],
+  selected: Set<string>,
+  together: boolean,
+  everyone: string[],
+): T[] {
+  const known = new Set(everyone);
+  const picked = new Set([...selected].filter((c) => known.has(c)));
+  const chosen = picked.size > 0 ? picked : known;
+  const isTogether = together && chosen.size > 1;
+  return filterTrips(trips, isTogether ? chosen : picked, isTogether);
 }
 
 export type CountryAgg = { iso3: string; count: number; days: number };

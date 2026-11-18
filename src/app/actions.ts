@@ -8,6 +8,8 @@ import { computeDays } from "@/lib/trips";
 import { getTripPhotos, type SignedPhoto } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 import type { TravelMode } from "@/types/database.types";
+import { requireSession, requireSessionOrShare } from "@/lib/session";
+import { sniffImage } from "@/lib/image-sniff";
 
 export type TripInput = {
   id?: string;
@@ -26,6 +28,9 @@ export type TripInput = {
 };
 
 const BUCKET = "trip-photos";
+/** Per-file cap after client-side compression; generous for PNGs and HEIC from desktop. */
+const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
+const MAX_PHOTOS_PER_UPLOAD = 12;
 
 /** Resolve a departure airport's coordinates: lookup, else geocode + remember. */
 async function resolveAirport(
@@ -50,6 +55,7 @@ async function resolveAirport(
 }
 
 export async function saveTrip(input: TripInput): Promise<{ id: string }> {
+  await requireSession();
   const supabase = createAdminClient();
   const country_iso3 = toIso3(input.country);
   const days = computeDays(input.start_date, input.end_date);
@@ -153,7 +159,8 @@ export async function saveTrip(input: TripInput): Promise<{ id: string }> {
   return { id: id! };
 }
 
-export async function fetchTripPhotos(tripId: string): Promise<SignedPhoto[]> {
+export async function fetchTripPhotos(tripId: string, shareToken?: string | null): Promise<SignedPhoto[]> {
+  await requireSessionOrShare(shareToken);
   return getTripPhotos(tripId);
 }
 
@@ -161,6 +168,7 @@ export type AirportHit = { iata: string; name: string; city: string | null };
 
 /** Search airports by IATA code, city or name (for the form's combobox). */
 export async function searchAirports(q: string): Promise<AirportHit[]> {
+  await requireSession();
   const query = q.trim().replace(/[,%*()]/g, "");
   if (query.length < 2) return [];
   const supabase = createAdminClient();
@@ -180,6 +188,7 @@ export async function searchAirports(q: string): Promise<AirportHit[]> {
 }
 
 export async function addWish(country: string): Promise<{ ok: boolean; error?: string }> {
+  await requireSession();
   const t = await getT();
   const name = country.trim();
   if (!name) return { ok: false, error: t("form.countryMissing") };
@@ -195,12 +204,14 @@ export async function addWish(country: string): Promise<{ ok: boolean; error?: s
 }
 
 export async function removeWish(iso3: string): Promise<void> {
+  await requireSession();
   const supabase = createAdminClient();
   await supabase.from("wishlist").delete().eq("iso3", iso3);
   revalidatePath("/destinations");
 }
 
 export async function deleteTrip(id: string): Promise<void> {
+  await requireSession();
   const supabase = createAdminClient();
   // remove stored photos for this trip
   const { data: files } = await supabase.storage.from(BUCKET).list(id);
@@ -212,53 +223,109 @@ export async function deleteTrip(id: string): Promise<void> {
   revalidatePath("/");
 }
 
-/** Upload one or more photos for a trip; first becomes cover if none set. */
-export async function uploadPhotos(tripId: string, formData: FormData): Promise<void> {
+export type UploadResult = { ok: true; added: number } | { ok: false; error: "count" | "size" | "type" | "upload" };
+
+/**
+ * Upload photos for a trip. Every file is identified by its magic bytes (JPEG,
+ * PNG, WebP, HEIC only) and stored under a random name. A row that fails to
+ * insert takes its storage object back out. The first photo becomes the cover
+ * if none is set yet.
+ */
+export async function uploadPhotos(tripId: string, formData: FormData): Promise<UploadResult> {
+  await requireSession();
   const supabase = createAdminClient();
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  if (!files.length) return;
+  if (!files.length) return { ok: true, added: 0 };
+  if (files.length > MAX_PHOTOS_PER_UPLOAD) return { ok: false, error: "count" };
 
   const { data: trip } = await supabase
     .from("trips")
-    .select("cover_photo_url")
+    .select("id, cover_photo_url")
     .eq("id", tripId)
     .maybeSingle();
-  const { count } = await supabase
-    .from("trip_photos")
-    .select("*", { count: "exact", head: true })
-    .eq("trip_id", tripId);
+  if (!trip) return { ok: false, error: "upload" };
 
-  let sort = count ?? 0;
-  let cover = trip?.cover_photo_url ?? null;
+  const { data: existing } = await supabase.from("trip_photos").select("sort").eq("trip_id", tripId);
+  let sort = Math.max(0, ...(existing ?? []).map((r) => (r.sort ?? 0) + 1));
+  let cover = trip.cover_photo_url ?? null;
+  let added = 0;
 
   for (const file of files) {
-    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${tripId}/${sort}-${safe}`;
+    if (file.size > MAX_PHOTO_BYTES) return { ok: false, error: "size" };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const kind = sniffImage(bytes);
+    if (!kind) return { ok: false, error: "type" };
+
+    const path = `${tripId}/${crypto.randomUUID()}.${kind.ext}`;
     const { error: upErr } = await supabase.storage
       .from(BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: true });
-    if (upErr) throw upErr;
-    await supabase.from("trip_photos").insert({ trip_id: tripId, url: path, sort });
+      .upload(path, bytes, { contentType: kind.type, upsert: false });
+    if (upErr) return { ok: false, error: "upload" };
+
+    const { error: rowErr } = await supabase.from("trip_photos").insert({ trip_id: tripId, url: path, sort: sort++ });
+    if (rowErr) {
+      await supabase.storage.from(BUCKET).remove([path]);
+      return { ok: false, error: "upload" };
+    }
     if (!cover) cover = path;
-    sort++;
+    added++;
   }
 
-  if (cover && cover !== trip?.cover_photo_url) {
+  if (cover && cover !== trip.cover_photo_url) {
     await supabase.from("trips").update({ cover_photo_url: cover }).eq("id", tripId);
   }
   revalidatePath("/");
+  return { ok: true, added };
 }
 
+/** Only a photo that actually belongs to the trip can become its cover. */
 export async function setCoverPhoto(tripId: string, path: string): Promise<void> {
+  await requireSession();
   const supabase = createAdminClient();
-  const { error } = await supabase.from("trips").update({ cover_photo_url: path }).eq("id", tripId);
+  const { data: photo } = await supabase
+    .from("trip_photos")
+    .select("url")
+    .eq("trip_id", tripId)
+    .eq("url", path)
+    .maybeSingle();
+  if (!photo) throw new Error("Photo not found");
+  const { error } = await supabase.from("trips").update({ cover_photo_url: photo.url }).eq("id", tripId);
   if (error) throw error;
   revalidatePath("/");
 }
 
-export async function deletePhoto(photoId: string, path: string): Promise<void> {
+/**
+ * The storage path is looked up from the row, never taken from the client, so
+ * this can only ever remove a trip photo. Deleting the cover promotes the next one.
+ */
+export async function deletePhoto(photoId: string): Promise<void> {
+  await requireSession();
   const supabase = createAdminClient();
-  await supabase.storage.from(BUCKET).remove([path]);
-  await supabase.from("trip_photos").delete().eq("id", photoId);
+  const { data: photo } = await supabase
+    .from("trip_photos")
+    .select("id, trip_id, url")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (!photo) return;
+
+  const { error } = await supabase.from("trip_photos").delete().eq("id", photoId);
+  if (error) throw error;
+  await supabase.storage.from(BUCKET).remove([photo.url]);
+
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("cover_photo_url")
+    .eq("id", photo.trip_id)
+    .maybeSingle();
+  if (trip?.cover_photo_url === photo.url) {
+    const { data: next } = await supabase
+      .from("trip_photos")
+      .select("url")
+      .eq("trip_id", photo.trip_id)
+      .order("sort")
+      .limit(1)
+      .maybeSingle();
+    await supabase.from("trips").update({ cover_photo_url: next?.url ?? null }).eq("id", photo.trip_id);
+  }
   revalidatePath("/");
 }

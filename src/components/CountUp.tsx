@@ -10,10 +10,7 @@ export default function CountUp({ value, className }: { value: number; className
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!inView) {
-      setDisplay(0);
-      return;
-    }
+    if (!inView) return;
     const duration = 650;
     let raf = 0;
     let startTs = 0;

@@ -1,3 +1,4 @@
+import { PLAN_SANDBOX } from "@/lib/plans";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPlanMeta, isPlanUnlocked } from "@/lib/plans";
@@ -48,6 +49,9 @@ export default async function PlanPage({ params }: Props) {
         src={`/${plan.slug}/content`}
         title={plan.title || plan.slug}
         className="min-h-0 w-full flex-1 border-0 bg-white"
+        // No allow-same-origin: the plan runs in an opaque origin, so its scripts work
+        // but can never reach the app (cookies, storage, same-origin requests).
+        sandbox={PLAN_SANDBOX}
       />
     </div>
   );

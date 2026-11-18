@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import type { Person } from "@/types/database.types";
 import type { TripWithMedia } from "@/lib/data";
-import { filterTrips, personColor, yearOf, isUpcoming, TRAVEL_MODE_ICON } from "@/lib/trips";
+import { personColor, yearOf, isUpcoming, TRAVEL_MODE_ICON } from "@/lib/trips";
+import { applyFilters, filterOptions, type TripFilter } from "@/lib/search";
+import { usePersonFilter } from "@/lib/use-person-filter";
 import { flagEmoji } from "@/lib/iso";
 import TopNav from "@/components/TopNav";
 import PersonFilter from "@/components/PersonFilter";
+import TripControls from "@/components/TripControls";
 import TripDetail from "@/components/TripDetail";
 import TripForm from "@/components/TripForm";
 import EmptyState from "@/components/EmptyState";
@@ -29,25 +32,26 @@ export default function DiaryPage({
   defaultAirport: string | null;
 }) {
   const tr = useT();
-  const [enabled, setEnabled] = useState<Set<string>>(new Set());
+  const codes = useMemo(() => persons.map((p) => p.code), [persons]);
+  const people = usePersonFilter(trips, codes);
+  const [filter, setFilter] = useState<TripFilter>({});
   const [detail, setDetail] = useState<TripWithMedia | null>(null);
   const [editing, setEditing] = useState<TripWithMedia | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  // Years the user opened or closed by hand; everything else follows the default.
+  const [toggled, setToggled] = useState<Map<number, boolean>>(new Map());
 
-  const toggle = (code: string) =>
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
-      return next;
-    });
+  const options = useMemo(() => filterOptions(people.filtered), [people.filtered]);
+
+  const visible = useMemo(
+    () =>
+      applyFilters(people.filtered, filter, (m) => tr("travelMode." + m))
+        .slice()
+        .sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? "")), // newest first
+    [people.filtered, filter, tr],
+  );
 
   const byYear = useMemo(() => {
-    const visible = filterTrips(trips, enabled).slice().sort((a, b) => {
-      const da = a.start_date ?? "";
-      const db = b.start_date ?? "";
-      return db.localeCompare(da); // newest first
-    });
     const groups = new Map<number, TripWithMedia[]>();
     for (const t of visible) {
       const y = yearOf(t) ?? 0;
@@ -56,7 +60,14 @@ export default function DiaryPage({
       else groups.set(y, [t]);
     }
     return [...groups.entries()].sort((a, b) => b[0] - a[0]);
-  }, [trips, enabled]);
+  }, [visible]);
+
+  // A long diary folds by year: only the newest opens by default. While searching or
+  // filtering every hit is what you came for, so all years open.
+  const narrowed = !!filter.search?.trim() || Object.values(filter).some(Boolean);
+  const isOpen = (year: number, index: number) => toggled.get(year) ?? (narrowed || index === 0);
+  const toggleYear = (year: number, index: number) =>
+    setToggled((prev) => new Map(prev).set(year, !isOpen(year, index)));
 
   const nameByCode = new Map(persons.map((p) => [p.code, p.name]));
 
@@ -64,30 +75,40 @@ export default function DiaryPage({
     <main className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10">
       <TopNav />
 
-      <div className="mb-8">
-        <PersonFilter
-          persons={persons}
-          enabled={enabled}
-          onToggle={toggle}
-          onAll={() => setEnabled(new Set())}
-        />
+      <div className="mb-4">
+        <PersonFilter persons={persons} filter={people} />
+      </div>
+      <div className="mb-8 max-w-3xl">
+        <TripControls options={options} filter={filter} onChange={setFilter} count={visible.length} />
       </div>
 
       <div className="max-w-3xl">
 
-      {byYear.map(([year, list]) => (
-        <Reveal as="section" key={year} className="mb-8">
-          <div className="mb-3 flex items-baseline gap-3">
+      {byYear.map(([year, list], index) => (
+        <Reveal as="section" key={year} className="mb-6">
+          <button
+            type="button"
+            onClick={() => toggleYear(year, index)}
+            aria-expanded={isOpen(year, index)}
+            className="mb-3 flex min-h-[44px] w-full items-baseline gap-3 rounded-xl text-left"
+          >
             <h2 className="text-2xl font-semibold tracking-tight">{year || tr("common.none")}</h2>
             <span className="text-sm text-muted">
               {list.length} {list.length === 1 ? tr("diary.trip") : tr("common.trips")}
             </span>
-          </div>
+            <span
+              aria-hidden
+              className={`ml-auto text-muted transition-transform ${isOpen(year, index) ? "rotate-180" : ""}`}
+            >
+              ▾
+            </span>
+          </button>
 
-          <ul className="space-y-3 border-l border-line pl-4 md:pl-6">
+          {isOpen(year, index) && (
+          <ul className="space-y-3 md:border-l md:border-line md:pl-6">
             {list.map((t) => (
               <li key={t.id} className="relative">
-                <span className="absolute -left-[1.4rem] top-5 h-2.5 w-2.5 rounded-full border-2 border-parchment bg-accent md:-left-[1.65rem]" />
+                <span className="absolute -left-[1.65rem] top-5 hidden h-2.5 w-2.5 rounded-full border-2 border-parchment bg-accent md:block" />
                 <button
                   onClick={() => setDetail(t)}
                   className="flex w-full gap-3 rounded-2xl border border-line bg-surface p-3 text-left transition-colors hover:bg-surface-2"
@@ -149,6 +170,7 @@ export default function DiaryPage({
               </li>
             ))}
           </ul>
+          )}
         </Reveal>
       ))}
 

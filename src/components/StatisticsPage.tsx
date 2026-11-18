@@ -14,7 +14,8 @@ import {
 } from "recharts";
 import type { Person } from "@/types/database.types";
 import type { TripWithMedia } from "@/lib/data";
-import { personColor, filterTrips, yearOf } from "@/lib/trips";
+import { personColor, yearOf } from "@/lib/trips";
+import { usePersonFilter } from "@/lib/use-person-filter";
 import {
   personStats,
   headToHead,
@@ -28,6 +29,7 @@ import PersonFilter from "@/components/PersonFilter";
 import Stats from "@/components/Stats";
 import StatTile from "@/components/StatTile";
 import Wrapped from "@/components/Wrapped";
+import { RankedCard, StayLengthCard } from "@/components/StatCards";
 import { Stagger } from "@/components/motion";
 import { useT } from "@/components/i18n/LanguageProvider";
 import { CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL } from "@/lib/chart";
@@ -42,19 +44,12 @@ export default function StatisticsPage({
   home: Home;
 }) {
   const t = useT();
-  const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [aCode, setACode] = useState(persons[0]?.code ?? "");
   const [bCode, setBCode] = useState(persons[1]?.code ?? persons[0]?.code ?? "");
 
-  const toggle = (code: string) =>
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
-      return next;
-    });
-
-  const visible = useMemo(() => filterTrips(trips, enabled), [trips, enabled]);
+  const codes = useMemo(() => persons.map((p) => p.code), [persons]);
+  const people = usePersonFilter(trips, codes);
+  const visible = people.filtered;
   const nameOf = (code: string) => persons.find((p) => p.code === code)?.name ?? code;
   const h2h = useMemo(() => headToHead(visible, aCode, bCode), [visible, aCode, bCode]);
 
@@ -64,7 +59,6 @@ export default function StatisticsPage({
   );
   const ov = useMemo(() => overviewStats(visible, home), [visible, home]);
   const ds = useMemo(() => deepStats(visible), [visible]);
-  const maxLandTrips = Math.max(1, ...ov.topCountries.map((c) => c.trips));
 
   const years = useMemo(
     () => [...new Set(visible.map(yearOf).filter((y): y is number => y != null))].sort((a, b) => b - a),
@@ -82,17 +76,12 @@ export default function StatisticsPage({
       <TopNav />
 
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
-        <PersonFilter
-          persons={persons}
-          enabled={enabled}
-          onToggle={toggle}
-          onAll={() => setEnabled(new Set())}
-        />
+        <PersonFilter persons={persons} filter={people} />
         <div className="flex items-center gap-2">
           <select
             value={recapYear}
             onChange={(e) => setRecapYear(e.target.value === "all" ? "all" : Number(e.target.value))}
-            className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent md:flex-none"
+            className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3 min-h-[44px] py-1.5 text-sm outline-none focus:border-accent md:flex-none"
             title={t("stats.recapPeriod")}
           >
             <option value="all">{t("stats.allYears")}</option>
@@ -153,7 +142,7 @@ export default function StatisticsPage({
       </section>
 
       {/* Saison + Top Länder */}
-      <section className="mb-10 grid gap-4 lg:grid-cols-2">
+      <section className="mb-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-line bg-surface p-4">
           <h3 className="mb-3 text-sm font-medium text-ink">{t("stats.travelMonths")}</h3>
           <ResponsiveContainer width="100%" height={190}>
@@ -169,32 +158,13 @@ export default function StatisticsPage({
           </ResponsiveContainer>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface p-4">
-          <h3 className="mb-3 text-sm font-medium text-ink">{t("stats.topCountries")}</h3>
-          <ul className="space-y-2.5">
-            {ov.topCountries.map((c, i) => (
-              <li key={c.country} className="flex items-center gap-3">
-                <span className="w-4 text-sm font-semibold tabular-nums text-muted">{i + 1}</span>
-                <span className="w-28 shrink-0 truncate text-sm text-ink">{c.country}</span>
-                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-2">
-                  <span
-                    className="block h-full rounded-full bg-accent"
-                    style={{ width: `${(c.trips / maxLandTrips) * 100}%` }}
-                  />
-                </span>
-                <span className="w-24 shrink-0 text-right text-xs text-muted">
-                  {c.trips} {t("common.trips")} · {c.days} {t("common.daysShort")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <RankedCard title={t("stats.topCountries")} trips={visible} kind="countries" />
       </section>
 
       {/* Mehr Auswertungen */}
       <section className="mb-10">
         <h2 className="mb-4 text-lg font-semibold">{t("stats.moreAnalyses")}</h2>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-line bg-surface p-4 lg:col-span-2">
             <h3 className="mb-3 text-sm font-medium text-ink">{t("stats.countriesOverTime")}</h3>
             <ResponsiveContainer width="100%" height={210}>
@@ -240,13 +210,9 @@ export default function StatisticsPage({
             <RankList rows={ds.byContinent.map((c) => ({ label: c.name, value: c.value, right: `${c.value} ${t("common.trips")}` }))} />
           </Card>
 
-          <Card title={t("stats.topPlaces")}>
-            <RankList rows={ds.topPlaces.map((p) => ({ label: p.place, value: p.trips, right: `${p.trips} ${t("common.trips")} · ${p.days} ${t("common.daysShort")}` }))} />
-          </Card>
+          <RankedCard title={t("stats.topPlaces")} trips={visible} kind="places" />
 
-          <Card title={t("stats.mostDaysCountries")}>
-            <RankList rows={ds.topDaysCountries.map((c) => ({ label: c.country, value: c.days, right: `${c.days} ${t("common.days")}` }))} />
-          </Card>
+          <StayLengthCard trips={visible} />
 
           <div className="flex flex-col justify-center rounded-2xl border border-line bg-surface p-4">
             <h3 className="mb-2 text-sm font-medium text-ink">{t("stats.worldCoverage")}</h3>
@@ -306,7 +272,7 @@ export default function StatisticsPage({
       {/* Everyone compared */}
       <section>
         <h2 className="mb-4 text-lg font-semibold">{t("stats.allCompared")}</h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <CompareChart title={t("stats.tripsPerPerson")} data={perPerson} pick={(s) => s.trips} />
           <CompareChart title={t("stats.travelDaysPerPerson")} data={perPerson} pick={(s) => s.days} />
           <CompareChart title={t("stats.countriesPerPerson")} data={perPerson} pick={(s) => s.countries} />
@@ -382,7 +348,7 @@ function PersonSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium outline-none focus:border-accent"
+      className="rounded-lg border border-line bg-surface px-3 min-h-[44px] py-1.5 text-sm font-medium outline-none focus:border-accent"
     >
       {persons.map((p) => (
         <option key={p.code} value={p.code}>

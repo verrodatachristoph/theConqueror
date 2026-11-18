@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SESSION_COOKIE, sessionToken, planCookie, planToken, safeEqual } from "@/lib/auth";
+import { SESSION_COOKIE, sessionToken, planCookie, planToken, safeEqual, authDisabled } from "@/lib/auth";
 import { isPlanSlug } from "@/lib/plan-slug";
 
 /** Everything about a plan except the (potentially huge) HTML body. */
@@ -75,7 +75,7 @@ export async function listPlans(): Promise<PlanSummary[]> {
  * and password is required. A valid family session always passes.
  */
 export async function isPlanUnlocked(plan: PlanMeta): Promise<boolean> {
-  if (!plan.passwordHash) return true;
+  if (!plan.passwordHash || authDisabled()) return true;
 
   const secret = process.env.AUTH_SECRET;
   if (!secret) return false;
@@ -87,3 +87,13 @@ export async function isPlanUnlocked(plan: PlanMeta): Promise<boolean> {
   const unlock = store.get(planCookie(plan.slug))?.value;
   return !!unlock && safeEqual(unlock, await planToken(secret, plan.slug, plan.passwordHash));
 }
+
+/**
+ * Sandbox flags for an uploaded travel plan. Scripts, forms, popups and dialogs
+ * keep working; `allow-same-origin` is deliberately missing, so the plan gets an
+ * opaque origin and cannot read or act on the app (localStorage inside a plan is
+ * therefore unavailable).
+ */
+export const PLAN_SANDBOX =
+  "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads";
+

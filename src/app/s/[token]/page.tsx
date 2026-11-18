@@ -18,6 +18,7 @@ export default async function Shared({ params }: { params: Promise<{ token: stri
       defaultAirport={null}
       wishlist={wishlist.map((w) => w.iso3)}
       readOnly
+      shareToken={token}
     />
   );
 }

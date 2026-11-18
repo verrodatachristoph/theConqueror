@@ -23,7 +23,7 @@ export default function Image() {
           background: "linear-gradient(135deg, #f7f3ec 0%, #e7edee 55%, #cfe2de 100%)",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img src={logo} width={560} height={560} alt="" />
       </div>
     ),

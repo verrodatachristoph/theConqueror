@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { THEME_COOKIE, type Theme } from "@/lib/theme";
 
 function SunIcon({ className = "" }: { className?: string }) {
@@ -20,28 +20,32 @@ function MoonIcon({ className = "" }: { className?: string }) {
   );
 }
 
+function readIsDark(): boolean {
+  return document.documentElement.classList.contains("dark");
+}
+
+function subscribeToHtmlClass(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
 /**
  * Light/dark toggle switch. The <html class="dark"> is server-rendered from a
  * cookie, so first paint is correct. After mount we read that class, then flip
  * it instantly on toggle and persist a cookie.
  */
 export default function ThemeToggle({ className = "" }: { className?: string }) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-    setMounted(true);
-  }, []);
+  // The server can't know the class, so it (and the first hydration pass) renders "light".
+  const isDark = useSyncExternalStore(subscribeToHtmlClass, readIsDark, () => false);
 
   function toggle() {
     const next: Theme = isDark ? "light" : "dark";
-    setIsDark(!isDark);
     document.documentElement.classList.toggle("dark", next === "dark");
     document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
   }
 
-  const on = mounted && isDark;
+  const on = isDark;
   return (
     <button
       type="button"

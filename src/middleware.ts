@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, sessionToken, safeEqual } from "@/lib/auth";
+import { SESSION_COOKIE, sessionToken, safeEqual, authDisabled } from "@/lib/auth";
 import { isPlanSlug } from "@/lib/plan-slug";
 
 /**
@@ -15,6 +15,7 @@ function isTravelPlanPath(pathname: string): boolean {
 }
 
 export async function middleware(req: NextRequest) {
+  if (authDisabled()) return NextResponse.next();
   if (isTravelPlanPath(req.nextUrl.pathname)) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;

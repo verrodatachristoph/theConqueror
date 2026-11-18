@@ -1,0 +1,729 @@
+{
+ "persons": [
+  {
+   "code": "A",
+   "name": "Alex",
+   "color": "#3b6ea5"
+  },
+  {
+   "code": "B",
+   "name": "Sam",
+   "color": "#c06b8a"
+  },
+  {
+   "code": "C",
+   "name": "Kim",
+   "color": "#6f9457"
+  }
+ ],
+ "trips": [
+  {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "place": "Sylt",
+   "country": "Deutschland",
+   "country_iso3": "DEU",
+   "lat": 54.9079,
+   "lon": 8.3105,
+   "category": "Ferienwohnung",
+   "travel_mode": "car",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2016-07-23",
+   "end_date": "2016-08-06",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2016-07-23T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000002",
+   "place": "Garmisch-Partenkirchen",
+   "country": "Deutschland",
+   "country_iso3": "DEU",
+   "lat": 47.4917,
+   "lon": 11.0955,
+   "category": "Hotel",
+   "travel_mode": "train",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2017-02-18",
+   "end_date": "2017-02-25",
+   "days": 8,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": "Erster Skiurlaub",
+   "cover_photo_url": null,
+   "created_at": "2017-02-18T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000003",
+   "place": "Lissabon",
+   "country": "Portugal",
+   "country_iso3": "PRT",
+   "lat": 38.7223,
+   "lon": -9.1393,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": "LIS",
+   "arrival_lat": 38.7742,
+   "arrival_lon": -9.1342,
+   "flight_stops": [],
+   "start_date": "2017-10-12",
+   "end_date": "2017-10-16",
+   "days": 5,
+   "travelers": [
+    "A",
+    "B"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2017-10-12T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000004",
+   "place": "Mallorca",
+   "country": "Spanien",
+   "country_iso3": "ESP",
+   "lat": 39.6953,
+   "lon": 3.0176,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": "PMI",
+   "arrival_lat": 39.5517,
+   "arrival_lon": 2.7388,
+   "flight_stops": [],
+   "start_date": "2018-08-04",
+   "end_date": "2018-08-18",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2018-08-04T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000005",
+   "place": "Kopenhagen",
+   "country": "Dänemark",
+   "country_iso3": "DNK",
+   "lat": 55.6761,
+   "lon": 12.5683,
+   "category": "Hotel",
+   "travel_mode": "train",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2019-04-18",
+   "end_date": "2019-04-22",
+   "days": 5,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2019-04-18T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000006",
+   "place": "Reykjavík",
+   "country": "Island",
+   "country_iso3": "ISL",
+   "lat": 64.1466,
+   "lon": -21.9426,
+   "category": "Ferienwohnung",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": "KEF",
+   "arrival_lat": 63.985,
+   "arrival_lon": -22.6056,
+   "flight_stops": [],
+   "start_date": "2019-09-01",
+   "end_date": "2019-09-10",
+   "days": 10,
+   "travelers": [
+    "A",
+    "B"
+   ],
+   "other_travelers": null,
+   "comment": "Polarlichter gesehen",
+   "cover_photo_url": null,
+   "created_at": "2019-09-01T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000007",
+   "place": "Gardasee",
+   "country": "Italien",
+   "country_iso3": "ITA",
+   "lat": 45.6495,
+   "lon": 10.6435,
+   "category": "Campingplatz",
+   "travel_mode": "car",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2020-08-01",
+   "end_date": "2020-08-15",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2020-08-01T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000008",
+   "place": "Kreta",
+   "country": "Griechenland",
+   "country_iso3": "GRC",
+   "lat": 35.2401,
+   "lon": 24.8093,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "FRA",
+   "departure_lat": 50.0379,
+   "departure_lon": 8.5622,
+   "arrival_iata": "HER",
+   "arrival_lat": 35.3397,
+   "arrival_lon": 25.1803,
+   "flight_stops": [],
+   "start_date": "2021-07-10",
+   "end_date": "2021-07-24",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2021-07-10T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000009",
+   "place": "Amsterdam",
+   "country": "Niederlande",
+   "country_iso3": "NLD",
+   "lat": 52.3676,
+   "lon": 4.9041,
+   "category": "Hotel",
+   "travel_mode": "train",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2022-03-11",
+   "end_date": "2022-03-13",
+   "days": 3,
+   "travelers": [
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2022-03-11T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000010",
+   "place": "Phuket",
+   "country": "Thailand",
+   "country_iso3": "THA",
+   "lat": 7.8804,
+   "lon": 98.3923,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": "HKT",
+   "arrival_lat": 8.1132,
+   "arrival_lon": 98.3169,
+   "flight_stops": [
+    {
+     "iata": "DXB",
+     "lat": 25.2532,
+     "lon": 55.3657
+    },
+    {
+     "iata": "BKK",
+     "lat": 13.69,
+     "lon": 100.7501
+    }
+   ],
+   "start_date": "2022-12-20",
+   "end_date": "2023-01-08",
+   "days": 20,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": "Weihnachten am Strand",
+   "cover_photo_url": null,
+   "created_at": "2022-12-20T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000011",
+   "place": "Wien",
+   "country": "Österreich",
+   "country_iso3": "AUT",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "category": "Hotel",
+   "travel_mode": "train",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2023-05-17",
+   "end_date": "2023-05-21",
+   "days": 5,
+   "travelers": [
+    "A",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2023-05-17T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000012",
+   "place": "New York",
+   "country": "USA",
+   "country_iso3": "USA",
+   "lat": 40.7128,
+   "lon": -74.006,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "FRA",
+   "departure_lat": 50.0379,
+   "departure_lon": 8.5622,
+   "arrival_iata": "JFK",
+   "arrival_lat": 40.6413,
+   "arrival_lon": -73.7781,
+   "flight_stops": [],
+   "start_date": "2023-10-02",
+   "end_date": "2023-10-09",
+   "days": 8,
+   "travelers": [
+    "A",
+    "B"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2023-10-02T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000013",
+   "place": "Bretagne",
+   "country": "Frankreich",
+   "country_iso3": "FRA",
+   "lat": 48.202,
+   "lon": -2.9326,
+   "category": "Ferienwohnung",
+   "travel_mode": "car",
+   "departure_iata": null,
+   "departure_lat": null,
+   "departure_lon": null,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2024-07-27",
+   "end_date": "2024-08-10",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2024-07-27T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000014",
+   "place": "Kapstadt",
+   "country": "Südafrika",
+   "country_iso3": "ZAF",
+   "lat": -33.9249,
+   "lon": 18.4241,
+   "category": "Ferienwohnung",
+   "travel_mode": "plane",
+   "departure_iata": "MUC",
+   "departure_lat": 48.3538,
+   "departure_lon": 11.7861,
+   "arrival_iata": "CPT",
+   "arrival_lat": -33.9715,
+   "arrival_lon": 18.6021,
+   "flight_stops": [],
+   "start_date": "2025-03-01",
+   "end_date": "2025-03-15",
+   "days": 15,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2025-03-01T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000015",
+   "place": "Istanbul",
+   "country": "Türkei",
+   "country_iso3": "TUR",
+   "lat": 41.0082,
+   "lon": 28.9784,
+   "category": "Hotel",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": "IST",
+   "arrival_lat": 41.2753,
+   "arrival_lon": 28.7519,
+   "flight_stops": [],
+   "start_date": "2025-10-09",
+   "end_date": "2025-10-13",
+   "days": 5,
+   "travelers": [
+    "B"
+   ],
+   "other_travelers": null,
+   "comment": null,
+   "cover_photo_url": null,
+   "created_at": "2025-10-09T08:00:00Z"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000016",
+   "place": "Lappland",
+   "country": "Finnland",
+   "country_iso3": "FIN",
+   "lat": 67.9222,
+   "lon": 26.5046,
+   "category": "Hütte",
+   "travel_mode": "plane",
+   "departure_iata": "HAM",
+   "departure_lat": 53.6304,
+   "departure_lon": 9.9882,
+   "arrival_iata": null,
+   "arrival_lat": null,
+   "arrival_lon": null,
+   "flight_stops": [],
+   "start_date": "2027-02-12",
+   "end_date": "2027-02-19",
+   "days": 8,
+   "travelers": [
+    "A",
+    "B",
+    "C"
+   ],
+   "other_travelers": null,
+   "comment": "Geplant",
+   "cover_photo_url": null,
+   "created_at": "2027-02-12T08:00:00Z"
+  }
+ ],
+ "trip_photos": [],
+ "wishlist": [
+  {
+   "iso3": "JPN",
+   "country": "Japan",
+   "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+   "iso3": "NZL",
+   "country": "Neuseeland",
+   "created_at": "2024-01-01T00:00:00Z"
+  }
+ ],
+ "airports": [
+  {
+   "iata": "HAM",
+   "name": "Hamburg Airport",
+   "city": "Hamburg",
+   "lat": 53.6304,
+   "lon": 9.9882
+  },
+  {
+   "iata": "FRA",
+   "name": "Frankfurt am Main",
+   "city": "Frankfurt",
+   "lat": 50.0379,
+   "lon": 8.5622
+  },
+  {
+   "iata": "MUC",
+   "name": "Munich Airport",
+   "city": "München",
+   "lat": 48.3538,
+   "lon": 11.7861
+  },
+  {
+   "iata": "LIS",
+   "name": "Humberto Delgado",
+   "city": "Lissabon",
+   "lat": 38.7742,
+   "lon": -9.1342
+  },
+  {
+   "iata": "PMI",
+   "name": "Palma de Mallorca",
+   "city": "Palma",
+   "lat": 39.5517,
+   "lon": 2.7388
+  },
+  {
+   "iata": "BKK",
+   "name": "Suvarnabhumi",
+   "city": "Bangkok",
+   "lat": 13.69,
+   "lon": 100.7501
+  },
+  {
+   "iata": "HKT",
+   "name": "Phuket International",
+   "city": "Phuket",
+   "lat": 8.1132,
+   "lon": 98.3169
+  },
+  {
+   "iata": "DXB",
+   "name": "Dubai International",
+   "city": "Dubai",
+   "lat": 25.2532,
+   "lon": 55.3657
+  },
+  {
+   "iata": "JFK",
+   "name": "John F. Kennedy",
+   "city": "New York",
+   "lat": 40.6413,
+   "lon": -73.7781
+  },
+  {
+   "iata": "KEF",
+   "name": "Keflavík",
+   "city": "Reykjavík",
+   "lat": 63.985,
+   "lon": -22.6056
+  },
+  {
+   "iata": "ATH",
+   "name": "Athens International",
+   "city": "Athen",
+   "lat": 37.9364,
+   "lon": 23.9445
+  },
+  {
+   "iata": "HER",
+   "name": "Heraklion",
+   "city": "Heraklion",
+   "lat": 35.3397,
+   "lon": 25.1803
+  },
+  {
+   "iata": "CPT",
+   "name": "Cape Town International",
+   "city": "Kapstadt",
+   "lat": -33.9715,
+   "lon": 18.6021
+  },
+  {
+   "iata": "IST",
+   "name": "Istanbul Airport",
+   "city": "Istanbul",
+   "lat": 41.2753,
+   "lon": 28.7519
+  }
+ ],
+ "app_settings": [
+  {
+   "id": 1,
+   "home_lat": 53.5511,
+   "home_lon": 9.9937,
+   "home_label": "Hamburg",
+   "default_airport": "HAM",
+   "password_hash": null,
+   "share_token": null,
+   "updated_at": "2024-01-01T00:00:00Z"
+  }
+ ],
+ "achievements": [
+  {
+   "id": "first",
+   "icon": "🧳",
+   "title": "Erste Schritte",
+   "description": "Die erste Reise",
+   "metric": "trips",
+   "target": 1,
+   "sort": 10,
+   "enabled": true
+  },
+  {
+   "id": "c10",
+   "icon": "🗺️",
+   "title": "Länder-Sammler",
+   "description": "10 Länder besucht",
+   "metric": "countries",
+   "target": 10,
+   "sort": 20,
+   "enabled": true
+  },
+  {
+   "id": "c20",
+   "icon": "🌍",
+   "title": "Weltenbummler",
+   "description": "20 Länder besucht",
+   "metric": "countries",
+   "target": 20,
+   "sort": 30,
+   "enabled": true
+  },
+  {
+   "id": "cont3",
+   "icon": "🧭",
+   "title": "Kontinent-Hüpfer",
+   "description": "3 Kontinente bereist",
+   "metric": "continents",
+   "target": 3,
+   "sort": 40,
+   "enabled": true
+  },
+  {
+   "id": "fly20",
+   "icon": "✈️",
+   "title": "Vielflieger",
+   "description": "20 Flüge",
+   "metric": "flights",
+   "target": 20,
+   "sort": 50,
+   "enabled": true
+  },
+  {
+   "id": "trips50",
+   "icon": "🏅",
+   "title": "Reise-Veteran",
+   "description": "50 Reisen insgesamt",
+   "metric": "trips",
+   "target": 50,
+   "sort": 60,
+   "enabled": true
+  },
+  {
+   "id": "long21",
+   "icon": "🏖️",
+   "title": "Langzeit-Urlauber",
+   "description": "Ein Aufenthalt ≥ 21 Tage",
+   "metric": "maxDays",
+   "target": 21,
+   "sort": 70,
+   "enabled": true
+  },
+  {
+   "id": "far",
+   "icon": "🛫",
+   "title": "Fernweh",
+   "description": "Ein Ziel ≥ 10.000 km entfernt",
+   "metric": "maxKm",
+   "target": 10000,
+   "sort": 80,
+   "enabled": true
+  },
+  {
+   "id": "family5",
+   "icon": "👨‍👩‍👧",
+   "title": "Familienbande",
+   "description": "5 Reisen mit allen dabei",
+   "metric": "familyTrips",
+   "target": 5,
+   "sort": 90,
+   "enabled": true
+  },
+  {
+   "id": "years5",
+   "icon": "📅",
+   "title": "Treue Reisende",
+   "description": "Reisen in 5 verschiedenen Jahren",
+   "metric": "years",
+   "target": 5,
+   "sort": 100,
+   "enabled": true
+  }
+ ],
+ "geocode_cache": [],
+ "travel_plans": [
+  {
+   "slug": "beispielplan",
+   "title": "Beispiel-Reiseplan",
+   "bytes": 373,
+   "password_hash": null,
+   "published": true,
+   "created_at": "2024-01-01T00:00:00Z",
+   "updated_at": "2024-01-01T00:00:00Z",
+   "html": "<!doctype html><meta charset=utf-8><title>Beispiel</title><body style=\"font-family:system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem\"><h1>Lappland 2027</h1><p>Ein Beispiel für einen hochgeladenen Reiseplan. Eigene Pläne lädst du im Admin-Bereich hoch.</p><ul><li>Tag 1: Anreise über Helsinki</li><li>Tag 2: Huskytour</li><li>Tag 3: Polarlichter</li></ul></body>"
+  }
+ ]
+}

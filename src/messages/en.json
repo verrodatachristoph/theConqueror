@@ -129,9 +129,15 @@
     "trip": "Trip"
   },
   "filter": {
+    "addToFilter": "Add {name}",
+    "everyone": "Everyone",
     "onlyWith": "Only trips {name} was on",
     "removeFromFilter": "Remove {name} from filter",
     "reset": "Reset",
+    "together": "Only together",
+    "togetherOff": "Trips any of the selected people were on",
+    "togetherOn": "Only trips all selected people took together",
+    "togetherOnEveryone": "Only trips the whole family was on",
     "whoWasThere": "Who was there"
   },
   "footer": {
@@ -166,6 +172,12 @@
     "noIso": "no ISO code",
     "optionalCityOrIata": "optional, city or IATA",
     "photoCompressHint": "Large photos (>1 MB) are resized automatically.",
+    "photoError": {
+      "count": "Too many photos at once (12 at most).",
+      "size": "A photo is too large (12 MB at most).",
+      "type": "Only JPEG, PNG, WebP or HEIC.",
+      "upload": "Photos could not be uploaded. The stay has been saved."
+    },
     "photos": "Photos",
     "place": "Place",
     "placeMissing": "Place is missing.",
@@ -181,10 +193,12 @@
   "home": {
     "flightLines": "Flight lines",
     "inDays": "in {n} days",
+    "mapSummary": "{countries} countries · {trips} stays",
     "newStay": "+ New stay",
     "nextTrip": "Next trip",
     "off": "off",
     "on": "on",
+    "openMap": "Open map",
     "searchPlaceholder": "Search…",
     "sharedView": "shared view",
     "sortCountry": "Country A–Z",
@@ -250,6 +264,18 @@
     "profileOf": "Profile of",
     "travelDays": "Travel days"
   },
+  "search": {
+    "category": "Accommodation",
+    "clear": "Clear all",
+    "country": "Country",
+    "filter": "Filter",
+    "placeholder": "Place, country, comment, airport …",
+    "removeFilter": "Remove {label}",
+    "reset": "Reset filters",
+    "results": "{n} results",
+    "show": "Show {n}",
+    "year": "Year"
+  },
   "settings": {
     "appearance": "Appearance",
     "language": "Language",
@@ -263,8 +289,11 @@
     "abroadShare": "Abroad share",
     "allCompared": "Everyone Compared",
     "allYears": "All years",
+    "average": "avg {n}",
     "avgDuration": "Avg. trip length",
     "busiestYear": "Busiest year",
+    "byDays": "Days",
+    "byVisits": "Visits",
     "continents": "Continents",
     "countries": "Countries",
     "countriesOverTime": "Countries over time",
@@ -297,6 +326,13 @@
     "recordsHighlights": "Records & Highlights",
     "sharedCountries": "Shared countries",
     "sharedTrips": "Shared trips",
+    "stay": {
+      "fortnight": "Up to two weeks",
+      "long": "Longer",
+      "week": "Up to a week",
+      "weekend": "Short trip (up to 3 days)"
+    },
+    "stayLength": "Trip length",
     "topCountries": "Top Countries",
     "topCountry": "Most-visited country",
     "topPlace": "Most-visited place",
@@ -308,6 +344,7 @@
     "tripsCount": "{n} trips",
     "tripsPerPerson": "Trips per person",
     "tripsPerYear": "Trips per year",
+    "visits": "visited {n}×",
     "vs": "vs",
     "worldCoverage": "World coverage",
     "worldCoverageCaption": "{pct} % of all countries worldwide.",

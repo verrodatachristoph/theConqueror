@@ -105,9 +105,21 @@ export default function TripForm({
         comment: comment.trim() || null,
       });
       if (files.length) {
-        const fd = new FormData();
-        for (const f of files) fd.append("files", await compressImage(f));
-        await uploadPhotos(id, fd);
+        // One request per photo keeps each call under the Server Action body limit.
+        let res: Awaited<ReturnType<typeof uploadPhotos>> = { ok: true, added: 0 };
+        for (const f of files) {
+          const fd = new FormData();
+          fd.append("files", await compressImage(f));
+          res = await uploadPhotos(id, fd);
+          if (!res.ok) break;
+        }
+        if (!res.ok) {
+          // The trip itself is saved; only the photos failed. Say so and keep the form open.
+          setError(t("form.photoError." + res.error));
+          setSaving(false);
+          router.refresh();
+          return;
+        }
       }
       router.refresh();
       toast(isEdit ? t("form.saved") : t("form.stayCreated"));
@@ -134,7 +146,7 @@ export default function TripForm({
   }
 
   async function removePhoto(p: SignedPhoto) {
-    await deletePhoto(p.id, p.path);
+    await deletePhoto(p.id);
     setPhotos((ps) => ps.filter((x) => x.id !== p.id));
     router.refresh();
   }

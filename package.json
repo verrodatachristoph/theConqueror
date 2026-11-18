@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import ./test/resolve.mjs --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test test/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

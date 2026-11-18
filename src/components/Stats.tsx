@@ -11,9 +11,12 @@ import {
   Cell,
   PieChart,
   Pie,
+  ReferenceLine,
+  LabelList,
 } from "recharts";
 import type { Trip } from "@/types/database.types";
 import { yearOf, totalFlights } from "@/lib/trips";
+import { tripsPerYear } from "@/lib/stats";
 import { CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL } from "@/lib/chart";
 import StatTile from "@/components/StatTile";
 import EmptyState from "@/components/EmptyState";
@@ -44,15 +47,9 @@ export default function Stats({ trips }: { trips: Trip[] }) {
     const days = trips.reduce((s, t) => s + (t.days ?? 0), 0);
     const countries = new Set(trips.map((t) => t.country_iso3).filter(Boolean));
     const years = new Set(trips.map(yearOf).filter((y): y is number => y != null));
-    const perYear = new Map<number, { year: number; trips: number; days: number }>();
-    for (const t of trips) {
-      const y = yearOf(t);
-      if (y == null) continue;
-      const e = perYear.get(y) ?? { year: y, trips: 0, days: 0 };
-      e.trips += 1;
-      e.days += t.days ?? 0;
-      perYear.set(y, e);
-    }
+    const perYearArr = tripsPerYear(trips);
+    const peak = Math.max(0, ...perYearArr.map((y) => y.trips));
+    const perYearMean = perYearArr.length ? trips.filter((t) => yearOf(t) != null).length / perYearArr.length : 0;
     const travel_mode = new Map<string, number>();
     for (const t of trips) if (t.travel_mode) travel_mode.set(t.travel_mode, (travel_mode.get(t.travel_mode) ?? 0) + 1);
 
@@ -65,7 +62,9 @@ export default function Stats({ trips }: { trips: Trip[] }) {
       count: trips.length,
       days,
       countries: countries.size,
-      perYearArr: [...perYear.values()].sort((a, b) => a.year - b.year),
+      perYearArr,
+      peak,
+      perYearMean,
       travelModeArr: [...travel_mode.entries()].map(([name, value]) => ({ name, value })),
       longest,
       topPlace: topBy(trips, (t) => t.place),
@@ -105,13 +104,16 @@ export default function Stats({ trips }: { trips: Trip[] }) {
       {/* Charts */}
       <Item className="col-span-2 rounded-2xl border border-line bg-surface p-4">
         <h3 className="mb-3 text-sm font-medium text-ink">{t("stats.tripsPerYear")}</h3>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={m.perYearArr} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+        <ResponsiveContainer width="100%" height={190}>
+          {/* Labels sit above the bars (with headroom), so the tallest bar never clips its own number. */}
+          <BarChart data={m.perYearArr} margin={{ top: 18, right: 4, bottom: 0, left: -20 }}>
             <XAxis
               dataKey="year"
               tick={{ fontSize: 11, fill: "var(--color-muted)" }}
               tickLine={false}
-              axisLine={false}
+              axisLine={{ stroke: "var(--color-line)" }}
+              interval="preserveStartEnd"
+              minTickGap={8}
             />
             <YAxis
               allowDecimals={false}
@@ -124,7 +126,30 @@ export default function Stats({ trips }: { trips: Trip[] }) {
               contentStyle={CHART_TOOLTIP_STYLE}
               labelStyle={CHART_TOOLTIP_LABEL}
             />
-            <Bar dataKey="trips" name={t("common.trips")} fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
+            {m.perYearMean > 0 && (
+              <ReferenceLine
+                y={m.perYearMean}
+                stroke="var(--color-muted)"
+                strokeDasharray="4 4"
+                label={{
+                  value: t("stats.average", { n: m.perYearMean.toFixed(1) }),
+                  position: "insideTopRight",
+                  fontSize: 10,
+                  fill: "var(--color-muted)",
+                }}
+              />
+            )}
+            <Bar dataKey="trips" name={t("common.trips")} radius={[4, 4, 0, 0]}>
+              {m.perYearArr.map((y) => (
+                <Cell
+                  key={y.year}
+                  fill={y.trips === m.peak ? "var(--color-arc)" : "var(--color-accent)"}
+                />
+              ))}
+              {m.perYearArr.length <= 16 && (
+                <LabelList dataKey="trips" position="top" fontSize={10} fill="var(--color-muted)" />
+              )}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </Item>
@@ -146,7 +171,11 @@ export default function Stats({ trips }: { trips: Trip[] }) {
                 <Cell key={a.name} fill={TRAVEL_MODE_COLORS[a.name] ?? "var(--color-country)"} />
               ))}
             </Pie>
-            <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL} />
+            <Tooltip
+              contentStyle={CHART_TOOLTIP_STYLE}
+              labelStyle={CHART_TOOLTIP_LABEL}
+              formatter={(value, name) => [value, t("travelMode." + String(name))]}
+            />
           </PieChart>
         </ResponsiveContainer>
         <div className="mt-2 flex justify-center gap-4 text-xs text-muted">

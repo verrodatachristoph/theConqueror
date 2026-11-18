@@ -56,7 +56,10 @@ export default function WorldMap({
   focusIso,
   onSelectTrip,
   onSelectCountry,
+  fill = false,
 }: {
+  /** Fill the parent's height (full-screen map on phones) instead of a fixed aspect ratio. */
+  fill?: boolean;
   trips: MapTrip[];
   showArcs?: boolean;
   wishlist?: string[];
@@ -187,12 +190,12 @@ export default function WorldMap({
   };
 
   return (
-    <div ref={wrapRef} className="relative w-full overflow-hidden rounded-xl">
+    <div ref={wrapRef} className={`relative w-full overflow-hidden ${fill ? "h-full" : "rounded-xl"}`}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="map-svg block h-auto w-full"
+        className={`map-svg block w-full ${fill ? "h-full touch-none" : "h-auto"}`}
         style={{ background: "var(--color-ocean)" }}
         onPointerLeave={() => setHover(null)}
       >

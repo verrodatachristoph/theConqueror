@@ -35,6 +35,26 @@ Recharts · Supabase (Postgres + Storage) · deploy on Vercel.
 
 ---
 
+## ⚡ Try it locally without Supabase
+
+```bash
+npm install
+cp .env.example .env.local
+# in .env.local set:  DEV_NO_AUTH=1   DEV_DEMO=1   AUTH_SECRET=<anything>
+npm run dev
+```
+
+`DEV_NO_AUTH=1` skips the password gate, `DEV_DEMO=1` replaces Supabase with an
+in-memory store seeded from the fictional sample in `demo/sample-db.json`.
+Changes are written to `.demo-data/` (gitignored) and survive restarts; delete
+that folder to start over. Both flags only work under `npm run dev` — a
+production build ignores them.
+
+To try your own data, import a Supabase backup into `.demo-data/` with
+`node scripts/demo-import.mjs <data_public.sql> [<storage/trip-photos dir>]`.
+
+---
+
 ## 🚀 Setup
 
 ### 0. Prerequisites
@@ -112,10 +132,19 @@ then start adding trips with **+ Neuer Aufenthalt**.
 3. **Redeploy** so the new env vars take effect.
 4. (optional) add a custom domain.
 
+## 🧪 Checks
+```bash
+npm run lint && npm run typecheck && npm test && npm run build
+```
+
 ## 🔐 Security notes
 - The app is gated by a single shared password (httpOnly, signed cookie). All
   data access happens server-side with the service-role key, which **never**
   reaches the browser.
+- Every Server Action verifies the session itself (`src/lib/session.ts`) — the
+  middleware alone is not enough, because actions can be posted to any path.
+- Uploaded photos are checked by their magic bytes (JPEG/PNG/WebP/HEIC only);
+  uploaded travel plans run in a sandboxed, opaque origin.
 - Row Level Security is enabled on every table, so even direct API calls with
   the anon key are denied.
 - Never commit `.env.local`. Rotate `AUTH_SECRET`/keys if they leak.

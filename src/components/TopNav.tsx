@@ -80,7 +80,7 @@ function ActionButtons() {
         href="/admin"
         title={t("nav.admin")}
         aria-label={t("nav.admin")}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-2xl leading-none transition-colors ${
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-2xl leading-none transition-colors ${
           pathname.startsWith("/admin")
             ? "border-ink bg-ink text-surface"
             : "border-line text-muted hover:text-ink"
@@ -92,7 +92,7 @@ function ActionButtons() {
         onClick={() => logout()}
         title={t("nav.logout")}
         aria-label={t("nav.logout")}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-muted transition-colors hover:text-ink"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line text-muted transition-colors hover:text-ink"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

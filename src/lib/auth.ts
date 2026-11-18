@@ -5,6 +5,14 @@
  */
 export const SESSION_COOKIE = "conq_session";
 
+/**
+ * Local development without the password gate: `DEV_NO_AUTH=1` in .env.local.
+ * Only honoured by `next dev` (NODE_ENV=development); a production build ignores it.
+ */
+export function authDisabled(): boolean {
+  return process.env.NODE_ENV === "development" && process.env.DEV_NO_AUTH === "1";
+}
+
 const enc = new TextEncoder();
 
 function base64url(buf: ArrayBuffer): string {
